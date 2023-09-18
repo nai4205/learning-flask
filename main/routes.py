@@ -1,5 +1,8 @@
+import secrets
+import os
+from PIL import Image
 from flask import render_template, url_for, flash, redirect, request
-from main.forms import RegistrationForm, LoginForm
+from main.forms import RegistrationForm, LoginForm, UpdateAccountForm
 from main.models import User, Post
 from main import app, bcrypt, db
 from flask_login import login_user, current_user, logout_user, login_required
@@ -67,7 +70,34 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-@app.route("/account")
+def save_picture(form_picture):
+    if current_user.image_file != 'default.jpg':
+        os.remove(os.path.join(app.root_path, 'static/profile_pics', current_user.image_file))
+    random_hex = secrets.token_hex(8)
+    _, f_ext = os.path.splitext(form_picture.filename)
+    picture_filename = random_hex + f_ext
+    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_filename)
+    output_size = (125, 125)
+    i = Image.open(form_picture)
+    i.thumbnail(output_size)
+    i.save(picture_path)
+    return picture_filename
+
+@app.route("/account", methods=['GET',  'POST'])
 @login_required
 def account():
-    return render_template('account.html', title='Account')
+    form = UpdateAccountForm()
+    if form.validate_on_submit():
+        if form.picture.data:
+            picture_filename = save_picture(form_picture=form.picture.data)
+            current_user.image_file = picture_filename
+        current_user.username = form.username.data
+        current_user.email = form.email.data
+        db.session.commit()
+        flash('Account Updated', 'success')
+        return redirect(url_for('account'))
+    elif request.method == 'GET':
+        form.username.data = current_user.username
+        form.email.data = current_user.email
+    image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
+    return render_template('account.html', title='Account', image_file=image_file, form=form)
