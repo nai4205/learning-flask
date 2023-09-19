@@ -21,7 +21,7 @@
             </div>
 
             <div class="form-group">
-                {{ form.content.label(class="form-control-label") }}
+                <label class="form-control-label">Description</label>
                 {% if form.content.errors %}
                 {{ form.content(class="form-control form-control-lg is-invalid") }}
                 <div class="invalid-feedback">
@@ -45,7 +45,12 @@
                 </div>
                 {% else %}
                 <div class="ingredients-input">
-                    {{ form.ingredients(class="form-control form-control-lg") }}
+                    <div class="ingredient-row">
+                        <button type="button" class="btn btn-secondary add-ingredient mt-2 mb-2">+</button>
+                        <button type="button" class="btn btn-danger remove-ingredient mt-2 mb-2" disabled>-</button>
+
+                        {{ form.ingredients(class="invisible", rows=1) }}
+                    </div>
                 </div>
                 {% endif %}
                 
@@ -59,21 +64,93 @@
 </div>
 
 <script>
-    // Listen for Enter key press in the ingredients textarea
-    document.addEventListener('DOMContentLoaded', function () {
-        const ingredientsTextarea = document.querySelector('.ingredients-input textarea');
+    // Get the ingredients input container
+    const ingredientsContainer = document.querySelector('.ingredients-input');
+    
+    // Hidden textarea for accumulating ingredient values
+    const hiddenIngredientsTextarea = document.querySelector('textarea[name="ingredients"]');
+    
+    // Single plus button to add a new ingredient field
+    const addButton = document.querySelector('.add-ingredient');
+    
+    // Single remove button to remove the last ingredient field
+    const removeButton = document.querySelector('.remove-ingredient');
+    
+    // Counter to track the number of ingredient fields
+    let ingredientCount = 1;
+    
+    // Function to add a new ingredient input field
+    function addIngredientField() {
+        const ingredientRow = document.createElement('div');
+        ingredientRow.classList.add('ingredient-row');
         
-        // Initialize the textarea with a bullet point
-        ingredientsTextarea.value = '• ';
+        const ingredientInput = document.createElement('textarea');
+        ingredientInput.classList.add('form-control', 'form-control-lg', 'mb-1', 'mt-1');
+        ingredientInput.rows = 1;
+        ingredientInput.name = `ingredient_${ingredientCount}`;
+        ingredientInput.addEventListener('input', updateHiddenTextarea);
         
-        ingredientsTextarea.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                const currentValue = this.value;
-                this.value = currentValue + '\n• ';
+        ingredientRow.appendChild(ingredientInput);
+        ingredientsContainer.appendChild(ingredientRow);
+        
+        // Increment the counter
+        ingredientCount++;
+        
+        // Enable the remove button when there's more than one ingredient field
+        if (ingredientCount > 1) {
+            removeButton.disabled = false;
+        }
+    }
+    
+    // Function to remove the last ingredient input field
+    function removeLastIngredientField() {
+        if (ingredientCount > 1) {
+            const lastIngredientRow = ingredientsContainer.lastElementChild;
+            const lastIngredientInput = lastIngredientRow.querySelector('textarea');
+            
+            // Remove the ingredient input field
+            ingredientsContainer.removeChild(lastIngredientRow);
+            
+            // Decrement the counter
+            ingredientCount--;
+            
+            // Disable the remove button if there's only one ingredient field left
+            if (ingredientCount === 1) {
+                removeButton.disabled = true;
             }
-        });
-    });
+            
+            // Update the hidden textarea by removing the text of the removed ingredient
+            updateHiddenTextarea();
+        }
+    }
+    
+    // Function to update the hidden textarea with accumulated ingredient values
+    function updateHiddenTextarea() {
+        const ingredientTexts = [];
+        for (let i = 1; i < ingredientCount; i++) {
+            const ingredientInput = document.querySelector(`textarea[name="ingredient_${i}"]`);
+            if (ingredientInput) {
+                ingredientTexts.push(ingredientInput.value);
+            }
+        }
+        hiddenIngredientsTextarea.value = ingredientTexts.join('\n');
+    }
+    
+    // Add event listener to the plus button to add new ingredient fields
+    addButton.addEventListener('click', addIngredientField);
+    
+    // Add event listener to the remove button to remove the last ingredient field
+    removeButton.addEventListener('click', removeLastIngredientField);
 </script>
+
+
+
+
+
+
+
+
+
+
 
 {% endblock content %}

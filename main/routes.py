@@ -104,7 +104,6 @@ def new_post():
         ingredients_list = form.ingredients.data.split('\n')
         ingredients = '\n'.join(f'{ingredient.strip()}' for ingredient in ingredients_list if ingredient.strip())
         post.ingredients = ingredients
-        
         db.session.add(post)
         db.session.commit()
         flash('Post has been created', 'success')

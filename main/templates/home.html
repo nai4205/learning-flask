@@ -13,7 +13,7 @@
                 <h3><p class="article-ttle">Ingredients:</p></h3>
                 <ul class="article-ingredients">
                     {% for ingredient in post.ingredients.split('\n') %}
-                        <a>{{ ingredient }}</a><br>
+                        <li>{{ ingredient }}</li><br>
                     {% endfor %}
                 </ul>
             </div>
