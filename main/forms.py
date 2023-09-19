@@ -66,4 +66,15 @@ class UpdateAccountForm(FlaskForm):
 class PostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     content = TextAreaField('Content', validators=[DataRequired()])
+    ingredients = TextAreaField('Ingredients', validators=[DataRequired()], render_kw={"rows": 5})  # Set rows for the textarea
     submit = SubmitField('Post')
+    def validate_ingredients(form, field):
+        ingredients_list = field.data.split('\n')
+        for ingredient in ingredients_list:
+            # Check if the ingredient contains text other than just the bullet point
+            if ingredient.strip('• ').strip():
+                return
+            
+            raise ValidationError('Please enter at least one ingredient.')
+
+    

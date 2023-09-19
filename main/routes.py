@@ -88,17 +88,29 @@ def account():
     image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
     return render_template('account.html', title='Account', image_file=image_file, form=form)
 
+
 @app.route("/post/new", methods=['GET', 'POST'])
 @login_required
 def new_post():
     form = PostForm()
     if form.validate_on_submit():
-        post = Post(title=form.title.data, content=form.content.data, author=current_user)
+        post = Post(
+            title=form.title.data,
+            content=form.content.data,
+            author=current_user
+        )
+        
+        # Split the ingredients by line breaks and format them with bullet points
+        ingredients_list = form.ingredients.data.split('\n')
+        ingredients = '\n'.join(f'{ingredient.strip()}' for ingredient in ingredients_list if ingredient.strip())
+        post.ingredients = ingredients
+        
         db.session.add(post)
         db.session.commit()
         flash('Post has been created', 'success')
         return redirect(url_for('home'))
     return render_template('create_post.html', title='New post', form=form, legend='New post')
+
 
 @app.route("/post/<int:post_id>")
 def post(post_id): 

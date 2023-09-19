@@ -1,43 +1,79 @@
-{% extends "layout.html"%}
+{% extends "layout.html" %}
 {% block content %}
 <div class="content-section">
     <form method="POST" action="">
-        {{form.hidden_tag()}}
+        {{ form.hidden_tag() }}
         <fieldset class="form-group">
-            <legend class="border-bottom mb-4">{{legend}}</legend>
+            <legend class="border-bottom mb-4">{{ legend }}</legend>
 
             <div class="form-group">
-                {{form.title.label(class="form-control-label")}}
-
-                {%if form.title.errors%}
-                    {{form.title(class="form-control form-control-lg is-invalid")}}
-                    <div class="invalid-feedback">
-                        {% for error in form.title.errors %}
-                            <span> {{ error }} </span> 
-                        {% endfor %}
-                    </div>
+                {{ form.title.label(class="form-control-label") }}
+                {% if form.title.errors %}
+                {{ form.title(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.title.errors %}
+                    <span> {{ error }} </span>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    {{form.title(class="form-control form-control-lg")}}
-                {% endif %}     
+                {{ form.title(class="form-control form-control-lg") }}
+                {% endif %}
             </div>
 
             <div class="form-group">
-                {{form.content.label(class="form-control-label")}}
-                {%if form.content.errors%}
-                    {{form.content(class="form-control form-control-lg is-invalid")}}
-                    <div class="invalid-feedback">
-                        {% for error in form.content.errors %}
-                            <span> {{ error }} </span> 
-                        {% endfor %}
-                    </div>
+                {{ form.content.label(class="form-control-label") }}
+                {% if form.content.errors %}
+                {{ form.content(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.content.errors %}
+                    <span> {{ error }} </span>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    {{form.content(class="form-control form-control-lg")}}
-                {% endif %}                   
+                {{ form.content(class="form-control form-control-lg") }}
+                {% endif %}
             </div>
+
+            <div class="form-group">
+                {{ form.ingredients.label(class="form-control-label") }}
+                {% if form.ingredients.errors %}
+                {{ form.ingredients(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.ingredients.errors %}
+                    <span> {{ error }} </span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="ingredients-input">
+                    {{ form.ingredients(class="form-control form-control-lg") }}
+                </div>
+                {% endif %}
+                
+            </div>
+
             <div class="form-group pt-3">
-                {{form.submit(class="btn btn-outline-info")}}
+                {{ form.submit(class="btn btn-outline-info") }}
             </div>
         </fieldset>
     </form>
 </div>
-{% endblock content %} 
+
+<script>
+    // Listen for Enter key press in the ingredients textarea
+    document.addEventListener('DOMContentLoaded', function () {
+        const ingredientsTextarea = document.querySelector('.ingredients-input textarea');
+        
+        // Initialize the textarea with a bullet point
+        ingredientsTextarea.value = '• ';
+        
+        ingredientsTextarea.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                const currentValue = this.value;
+                this.value = currentValue + '\n• ';
+            }
+        });
+    });
+</script>
+
+{% endblock content %}
