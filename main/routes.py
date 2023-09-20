@@ -6,6 +6,8 @@ from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm
 from main.models import User, Post
 from main import app, bcrypt, db
 from flask_login import login_user, current_user, logout_user, login_required
+from sqlalchemy import func
+
 
 @app.route("/")
 @app.route("/home")
@@ -108,7 +110,7 @@ def new_post():
         db.session.commit()
         flash('Post has been created', 'success')
         return redirect(url_for('home'))
-    return render_template('create_post.html', title='New post', form=form, legend='New post')
+    return render_template('create_post.html', title='New', form=form, legend='New Recipe')
 
 
 @app.route("/post/<int:post_id>")
@@ -139,7 +141,7 @@ def update_post(post_id):
         form.title.data = post.title
         form.content.data = post.content
         session['ingredients_len'] = len(post.ingredients.split('\n'))
-    return render_template('create_post.html', title='Update post', form=form, legend='Update Post', post=post)
+    return render_template('create_post.html', title='Update', form=form, legend='Update Recipe', post=post)
 
 @app.route("/post/<int:post_id>/delete", methods=['POST', 'GET'])
 @login_required
@@ -150,4 +152,17 @@ def delete_post(post_id):
     db.session.delete(post)
     db.session.commit()
     flash("Post Deleted", 'success')
+    return redirect(url_for('home'))
+
+@app.route("/handle_search")
+def handle_search():
+    query = request.args['search']
+    post = Post.query.filter    (func.lower(Post.title) == func.lower(query)).first()
+    if post and query:  
+        flash(f'Found result for {post.title}', 'success')
+        return redirect(url_for('post', post_id=post.id))
+    elif query:
+        flash(f'No result for {query}', 'danger')
+    else:
+        flash('Please enter search query', 'danger')
     return redirect(url_for('home'))

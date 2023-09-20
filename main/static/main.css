@@ -43,6 +43,7 @@ body {
   
   .article-content {
     white-space: pre-line;
+    word-wrap:break-word
   }
   
   .article-img {
@@ -79,7 +80,17 @@ body {
     font-size: 2.5rem;
   }
 
-.ingredients-input textarea {
-  max-height: 300px; 
-  overflow-y: auto; 
+
+
+
+/* .ingredients-text{
+  color:#113fa2;
 }
+
+.description-text{
+  color:#113fa2;
+}
+
+.title-text{
+  color:#6b74b6;
+} */

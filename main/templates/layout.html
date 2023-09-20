@@ -2,9 +2,9 @@
 <html lang="en">
   <head>
     {%if title%}
-    <title>Flask blog - {{title}}</title>
+    <title>Recipe - {{title}}</title>
     {%else%}
-    <title>Flask blog</title>
+    <title>Recipe saver</title>
     {%endif%}
 
 
@@ -20,7 +20,7 @@
     <header class="site-header">
         <nav class="navbar navbar-expand-md navbar-dark bg-steel fixed-top">
           <div class="container">
-            <a class="navbar-brand mr-4" href="/">Flask Blog</a>
+            <a class="navbar-brand mr-4" href="/">Recipe saver</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
               <span class="navbar-toggler-icon"></span>
             </button>
@@ -40,8 +40,19 @@
                   <a class="nav-item nav-link" href="{{url_for('register')}}">Register</a>
                 {% endif %}
               </div>
+              
             </div>
           </div>
+          <form class="form-inline my-2 my-lg-0" action="{{ url_for('handle_search') }}">
+            <div class="input-group">
+              <input class="form-control" name="search" type="search" placeholder="Search" aria-label="Search">
+              <div class="input-group-append">
+                <button class="btn btn-secondary" type="submit">Search</button>
+              </div>
+            </div>
+          </form>
+                 
+
         </nav>
       </header>
       <main role="main" class="container">

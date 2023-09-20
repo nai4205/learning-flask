@@ -7,13 +7,14 @@
                 <div class="article-metadata">
                     <a class="mr-2" href="#">{{ post.author.username }}</a>
                     <small class="text-muted">{{ post.date_posted.strftime('%Y-%m-%d') }}</small>
-                </div>
-                <h2><a class="article-title" href="{{url_for('post', post_id=post.id)}}">{{ post.title }}</a></h2>
-                <p class="article-content">{{ post.content }}</p>
+                </div>  
+                <h2><a class="article-title title-text" href="{{url_for('post', post_id=post.id)}}">{{ post.title }}</a></h2>
+                <h3><p class="article-ingredients">Method:</p></h3>
+                <p class="article-content description-text method-container">{{ post.content.strip() }}</p>
                 <h3><p class="article-ttle">Ingredients:</p></h3>
-                <ul class="article-ingredients">
+                <ul class="article-ingredients ingredients-text">
                     {% for ingredient in post.ingredients.split('\n') %}
-                        <li>{{ ingredient }}</li><br>
+                        <li>{{ ingredient.strip() }}</li><br>
                     {% endfor %}
                 </ul>
             </div>
