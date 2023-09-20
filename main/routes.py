@@ -134,6 +134,7 @@ def post(post_id):
     post = Post.query.get_or_404(post_id)
     return render_template('post.html', title=post.title, post=post)
 
+
 @app.route("/post/<int:post_id>/update", methods=['GET', 'POST'])
 @login_required
 def update_post(post_id):
@@ -178,7 +179,7 @@ def delete_post(post_id):
 @app.route("/handle_search")
 def handle_search():
     query = request.args['search']
-    post = Post.query.filter    (func.lower(Post.title) == func.lower(query)).first()
+    post = Post.query.filter(func.lower(Post.title) == func.lower(query)).first()
     if post and query and post.private != True:  
         flash(f'Found result for {post.title}', 'success')
         return redirect(url_for('post', post_id=post.id))
@@ -187,7 +188,7 @@ def handle_search():
             flash(f'Found result for {post.title}', 'success')
             return redirect(url_for('post', post_id=post.id))
         else:
-            flash('This post is private', 'danger')
+            flash('This recipe is private', 'danger')
     elif query:
         flash(f'No result for {query}', 'danger')
     else:
