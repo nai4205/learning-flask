@@ -43,6 +43,7 @@ body {
   
   .article-content {
     white-space: pre-line;
+    word-wrap:break-word
   }
   
   .article-img {
@@ -78,3 +79,30 @@ body {
   .account-heading {
     font-size: 2.5rem;
   }
+
+
+.navbar-nav{
+  float: right;
+}
+
+/* .ingredients-text{
+  color:#113fa2;
+}
+
+.description-text{
+  color:#113fa2;
+}
+
+.title-text{
+  color:#6b74b6;
+} */
+
+
+.material-symbols-rounded {
+  font-variation-settings:
+  'FILL' 1,
+  'wght' 300,
+  'GRAD' 200,
+  'opsz' 48
+}
+

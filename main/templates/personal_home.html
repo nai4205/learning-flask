@@ -1,0 +1,32 @@
+{% extends "layout.html" %}
+{% block content %}
+    <div class="dropdown">
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+        Feed type
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+        <li><a class="dropdown-item" href="{{url_for('home')}}">Public</a></li>
+        <li><a class="dropdown-item" href="{{url_for('personal_home')}}">Personal</a></li>
+        </ul>
+    </div>
+    {% for post in posts %}
+        <article class="media content-section">
+            <img class="rounded-circle article-img" src="{{url_for('static', filename='profile_pics/' + post.author.image_file)}}">
+            <div class="media-body">
+                <div class="article-metadata">
+                    <a class="mr-2" href="#">{{ post.author.username }}</a>
+                    <small class="text-muted">{{ post.date_posted.strftime('%Y-%m-%d') }}</small>
+                </div>  
+                <h2><a class="article-title title-text" href="{{url_for('post', post_id=post.id)}}">{{ post.title }}</a></h2>
+                <h3><p class="article-ingredients">Method:</p></h3>
+                <p class="article-content description-text method-container">{{ post.content.strip() }}</p>
+                <h3><p class="article-ttle">Ingredients:</p></h3>
+                <ul class="article-ingredients ingredients-text">
+                    {% for ingredient in post.ingredients.split('\n') %}
+                        <li>{{ ingredient.strip() }}</li><br>
+                    {% endfor %}
+                </ul>
+            </div>
+        </article>
+    {% endfor %}
+{% endblock content %}

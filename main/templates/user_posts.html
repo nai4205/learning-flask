@@ -2,7 +2,9 @@
 {% block content %}
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Rounded:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <h1 class="mb-3">Recipes from {{user.username}}</h1>
     <div class="dropdown">
+        {%if not searching%}
         <button class="btn btn-secondary dropdown-toggle mb-2" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
         {{drop_title}}
         </button>
@@ -10,6 +12,7 @@
         <li><a class="dropdown-item" href="{{url_for('home')}}">All recipes</a></li>
         <li><a class="dropdown-item" href="{{url_for('personal_home')}}">Your recipes</a></li>
         </ul>
+        {%endif%}
     </div>
     {% for post in posts.items %}
         {%if post.private == False or current_user == post.author%}
@@ -46,17 +49,9 @@
     {%for page_num in posts.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
         {%if page_num%}
             {%if posts.page == page_num%}
-                {% if request.path == url_for('personal_home') %}
-                    <a class="btn btn-info mb-4" href="{{url_for('personal_home', page=page_num)}}">{{page_num}}</a>
-                {%else%}
-                    <a class="btn btn-info mb-4" href="{{url_for('home', page=page_num)}}">{{page_num}}</a>
-                {%endif%}
+                <a class="btn btn-info mb-4" href="{{url_for('user_posts', username=user.username, page=page_num)}}">{{page_num}}</a>
             {%else%}
-                {% if request.path == url_for('personal_home') %}
-                    <a class="btn btn-outline-info mb-4" href="{{url_for('personal_home', page=page_num)}}">{{page_num}}</a>
-                {%else%}
-                    <a class="btn btn-outline-info mb-4" href="{{url_for('home', page=page_num)}}">{{page_num}}</a>
-                {%endif%}
+                <a class="btn btn-outline-info mb-4" href="{{url_for('user_posts', username=user.username, page=page_num)}}">{{page_num}}</a>
             {%endif%}
         {%else%}    
              ...

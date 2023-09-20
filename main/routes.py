@@ -1,17 +1,31 @@
 import secrets
 import os
 from PIL import Image
-from flask import render_template, url_for, flash, redirect, request, abort
+from flask import render_template, url_for, flash, redirect, request, abort, session
 from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm
 from main.models import User, Post
 from main import app, bcrypt, db
 from flask_login import login_user, current_user, logout_user, login_required
+from sqlalchemy import func
+
 
 @app.route("/")
 @app.route("/home")
 def home():
-    posts = Post.query.all()
-    return render_template('home.html', posts=posts)
+    page = request.args.get('page', 1, type=int)
+    posts = Post.query.order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
+    return render_template('home.html', posts=posts, drop_title="All recipes")
+
+@app.route("/personal_home")
+@login_required
+def personal_home():
+    page = request.args.get('page', 1, type=int)
+    posts = Post.query.filter_by(author=current_user).order_by(Post.date_posted.desc()).paginate(per_page=5 , page=page)
+    if posts:
+        return render_template('home.html', posts=posts, drop_title="Your recipes")
+    else:
+        flash("You haven't posted anything!", "danger")
+        return redirect(url_for('home'))
 
 @app.route("/about")
 def about():
@@ -88,22 +102,40 @@ def account():
     image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
     return render_template('account.html', title='Account', image_file=image_file, form=form)
 
+
 @app.route("/post/new", methods=['GET', 'POST'])
 @login_required
 def new_post():
     form = PostForm()
     if form.validate_on_submit():
-        post = Post(title=form.title.data, content=form.content.data, author=current_user)
+        post = Post(
+        title=form.title.data,
+        content=form.content.data,
+        author=current_user
+        )
+        submit_type = request.form['submit_type']
+        if submit_type == 'private':
+            post.private = True
+        elif submit_type == 'public':
+            post.private = False
+        
+        
+        # Split the ingredients by line breaks and format them with bullet points
+        ingredients_list = form.ingredients.data.split('\n')
+        ingredients = '\n'.join(f'{ingredient.strip()}' for ingredient in ingredients_list if ingredient.strip())
+        post.ingredients = ingredients
         db.session.add(post)
         db.session.commit()
         flash('Post has been created', 'success')
         return redirect(url_for('home'))
-    return render_template('create_post.html', title='New post', form=form, legend='New post')
+    return render_template('create_post.html', title='New', form=form, legend='New Recipe')
+
 
 @app.route("/post/<int:post_id>")
 def post(post_id): 
     post = Post.query.get_or_404(post_id)
     return render_template('post.html', title=post.title, post=post)
+
 
 @app.route("/post/<int:post_id>/update", methods=['GET', 'POST'])
 @login_required
@@ -115,15 +147,27 @@ def update_post(post_id):
     if form.validate_on_submit():
         post.title = form.title.data
         post.content = form.content.data
+        ingredients_list = form.ingredients.data.split('\n')
+        ingredients = '\n'.join(f'{ingredient.strip()}' for ingredient in ingredients_list if ingredient.strip())
+        post.ingredients = ingredients
+        submit_type = request.form['submit_type']
+        if submit_type == 'private':
+            post.private = True
+        elif submit_type == 'public':
+            post.private = False
         db.session.commit()
+
         flash('Post Updated', 'success')
         return redirect(url_for('post', post_id=post.id))
     elif request.method == 'GET':
+        ingredients_list = post.ingredients.split('\n')
+        form.ingredients.data = post.ingredients
         form.title.data = post.title
         form.content.data = post.content
-    return render_template('create_post.html', title='Update post', form=form, legend='Update Post')
+        session['ingredients_len'] = len(post.ingredients.split('\n'))
+    return render_template('create_post.html', title='Update', form=form, legend='Update Recipe', post=post)
 
-@app.route("/post/<int:post_id>/delete", methods=['POST'])
+@app.route("/post/<int:post_id>/delete", methods=['POST', 'GET'])
 @login_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
@@ -133,3 +177,30 @@ def delete_post(post_id):
     db.session.commit()
     flash("Post Deleted", 'success')
     return redirect(url_for('home'))
+
+@app.route("/handle_search")
+def handle_search():
+    query = request.args['search']
+    post = Post.query.filter(func.lower(Post.title) == func.lower(query)).first()
+    if post and query and post.private != True:  
+        flash(f'Found result for {post.title}', 'success')
+        return redirect(url_for('post', post_id=post.id))
+    elif post.private == True:
+        if current_user == post.author:
+            flash(f'Found result for {post.title}', 'success')
+            return redirect(url_for('post', post_id=post.id))
+        else:
+            flash('This recipe is private', 'danger')
+    elif query:
+        flash(f'No result for {query}', 'danger')
+    else:
+        flash('Please enter search query', 'danger')
+    return redirect(url_for('home'))
+
+
+@app.route("/user/<string:username>")
+def user_posts(username):
+    page = request.args.get('page', 1, type=int)
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
+    return render_template('user_posts.html', posts=posts, user=user, searching=True)

@@ -66,4 +66,8 @@ class UpdateAccountForm(FlaskForm):
 class PostForm(FlaskForm):
     title = StringField('Title', validators=[DataRequired()])
     content = TextAreaField('Content', validators=[DataRequired()])
+    ingredients = TextAreaField('Ingredients', validators=[DataRequired()], render_kw={"rows": 5})  # Set rows for the textarea
     submit = SubmitField('Post')
+    
+
+    

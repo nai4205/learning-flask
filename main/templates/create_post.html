@@ -1,43 +1,186 @@
-{% extends "layout.html"%}
+{% extends "layout.html" %}
 {% block content %}
 <div class="content-section">
     <form method="POST" action="">
-        {{form.hidden_tag()}}
+        {{ form.hidden_tag() }}
         <fieldset class="form-group">
-            <legend class="border-bottom mb-4">{{legend}}</legend>
+            <legend class="border-bottom mb-4">{{ legend }}</legend>
 
             <div class="form-group">
-                {{form.title.label(class="form-control-label")}}
-
-                {%if form.title.errors%}
-                    {{form.title(class="form-control form-control-lg is-invalid")}}
-                    <div class="invalid-feedback">
-                        {% for error in form.title.errors %}
-                            <span> {{ error }} </span> 
-                        {% endfor %}
-                    </div>
+                <label class="form-control-label">Recipe name   </label>
+                {% if form.title.errors %}
+                {{ form.title(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.title.errors %}
+                    <span> {{ error }} </span>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    {{form.title(class="form-control form-control-lg")}}
-                {% endif %}     
+                {{ form.title(class="form-control form-control-lg") }}
+                {% endif %}
             </div>
 
             <div class="form-group">
-                {{form.content.label(class="form-control-label")}}
-                {%if form.content.errors%}
-                    {{form.content(class="form-control form-control-lg is-invalid")}}
-                    <div class="invalid-feedback">
-                        {% for error in form.content.errors %}
-                            <span> {{ error }} </span> 
-                        {% endfor %}
-                    </div>
+                <label class="form-control-label">Method</label>
+                {% if form.content.errors %}
+                {{ form.content(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.content.errors %}
+                    <span> {{ error }} </span>
+                    {% endfor %}
+                </div>
                 {% else %}
-                    {{form.content(class="form-control form-control-lg")}}
-                {% endif %}                   
+                {{ form.content(class="form-control form-control-lg") }}
+                {% endif %}
             </div>
+
+            <div class="form-group">
+                {{ form.ingredients.label(class="form-control-label") }}
+                {% if form.ingredients.errors %}
+                {{ form.ingredients(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.ingredients.errors %}
+                    <span> {{ error }} </span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="ingredients-input">
+                    <div class="ingredient-row">
+                        <button type="button" class="btn btn-secondary add-ingredient mt-2 mb-2">+</button>
+                        <button type="button" class="btn btn-danger remove-ingredient mt-2 mb-2" disabled>-</button>
+
+                        {{ form.ingredients(class="invisible", rows=1) }}
+                    </div>
+                </div>
+                {% endif %}
+                
+            </div>
+
             <div class="form-group pt-3">
-                {{form.submit(class="btn btn-outline-info")}}
+                <button type="button" class="btn btn-primary btn-success mt-1 mb-1" data-bs-toggle="modal" data-bs-target="#postModal">Post</button>                
             </div>
+            <div class="modal fade" id="postModal" tabindex="-1" role="dialog" aria-labelledby="postModalLabel" aria-hidden="true">
+                <div class="modal-dialog" role="document">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="postModalLabel">Public or private</h5>
+                        <button type="button" class="close" data-bs-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                      </button>
+                    </div>
+                    <div class="modal-body">
+                      Would you like to share this post to the public or keep it private?
+                    </div>
+                    <div class="modal-footer">
+                      <button type="submit" name="submit_type" value="public" class="btn btn-secondary">Public</button>
+                      <button type="submit" name="submit_type" value="private" class="btn btn-secondary btm-sm mt-1 mb-1">Private</button>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            
         </fieldset>
     </form>
 </div>
-{% endblock content %} 
+
+<script>
+    const ingredientsContainer = document.querySelector('.ingredients-input');
+    
+    const hiddenIngredientsTextarea = document.querySelector('textarea[name="ingredients"]');
+    
+    const addButton = document.querySelector('.add-ingredient');
+    
+    const removeButton = document.querySelector('.remove-ingredient');
+    
+    let ingredientCount = 1;
+    
+    function addIngredientField() {
+        const ingredientRow = document.createElement('div');
+        ingredientRow.classList.add('ingredient-row', 'mb-1', 'mt-1');
+
+        const ingredientInput = document.createElement('textarea');
+        ingredientInput.classList.add('form-control', 'form-control-lg');
+        ingredientInput.rows = 1;
+        ingredientInput.name = `ingredient_${ingredientCount}`;
+        ingredientInput.addEventListener('input', updateHiddenTextarea);
+        
+        ingredientRow.appendChild(ingredientInput);
+        ingredientsContainer.appendChild(ingredientRow);
+        
+        ingredientCount++;
+        
+        if (ingredientCount > 1) {
+            removeButton.disabled = false;
+        }
+    }
+    
+    function removeLastIngredientField() {
+        if (ingredientCount > 1) {
+            const lastIngredientRow = ingredientsContainer.lastElementChild;
+            const lastIngredientInput = lastIngredientRow.querySelector('textarea');
+            
+            ingredientsContainer.removeChild(lastIngredientRow);
+            
+            ingredientCount--;
+            
+            if (ingredientCount === 1) {
+                removeButton.disabled = true;
+            }
+            
+            updateHiddenTextarea();
+        }
+    }
+    
+    function updateHiddenTextarea() {
+        const ingredientTexts = [];
+        for (let i = 1; i < ingredientCount; i++) {
+            const ingredientInput = document.querySelector(`textarea[name="ingredient_${i}"]`);
+            if (ingredientInput) {
+                ingredientTexts.push(ingredientInput.value);
+            }
+        }
+        hiddenIngredientsTextarea.value = ingredientTexts.join('\n');
+    }
+
+    var storedIngredients = {{ form.ingredients.data|tojson }};
+    if(storedIngredients){
+        var array = storedIngredients.split('\n').map(function(item) {
+        return item.trim();
+    });
+    }
+    
+    storedIngredients = array
+    const storedIngredientsLength = parseInt({{ session['ingredients_len'] }});
+    
+    if (storedIngredients && Array.isArray(storedIngredients) && storedIngredientsLength > 0) {
+        while (ingredientCount <= storedIngredientsLength) {
+            addIngredientField();
+        }
+        
+        for (let i = 0; i < storedIngredients.length; i++) {
+            const ingredientInput = document.querySelector(`textarea[name="ingredient_${i+1}"]`);
+            if (ingredientInput) {
+                ingredientInput.value = storedIngredients[i];
+            }
+        }
+    }
+    
+    addButton.addEventListener('click', addIngredientField);
+    removeButton.addEventListener('click', removeLastIngredientField);
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% endblock content %}
