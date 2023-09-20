@@ -13,7 +13,17 @@ from sqlalchemy import func
 @app.route("/home")
 def home():
     posts = Post.query.all()
-    return render_template('home.html', posts=posts)
+    return render_template('home.html', posts=posts, drop_title="All recipes")
+
+@app.route("/personal_home")
+@login_required
+def personal_home():
+    posts = Post.query.filter_by(author=current_user).all()
+    if posts:
+        return render_template('home.html', posts=posts, drop_title="Your recipes")
+    else:
+        flash("You haven't posted anything!", "danger")
+        return redirect(url_for('home'))
 
 @app.route("/about")
 def about():
@@ -97,10 +107,16 @@ def new_post():
     form = PostForm()
     if form.validate_on_submit():
         post = Post(
-            title=form.title.data,
-            content=form.content.data,
-            author=current_user
+        title=form.title.data,
+        content=form.content.data,
+        author=current_user
         )
+        submit_type = request.form['submit_type']
+        if submit_type == 'private':
+            post.private = True
+        elif submit_type == 'public':
+            post.private = False
+        
         
         # Split the ingredients by line breaks and format them with bullet points
         ingredients_list = form.ingredients.data.split('\n')
@@ -131,9 +147,14 @@ def update_post(post_id):
         ingredients_list = form.ingredients.data.split('\n')
         ingredients = '\n'.join(f'{ingredient.strip()}' for ingredient in ingredients_list if ingredient.strip())
         post.ingredients = ingredients
+        submit_type = request.form['submit_type']
+        if submit_type == 'private':
+            post.private = True
+        elif submit_type == 'public':
+            post.private = False
         db.session.commit()
-        flash('Post Updated', 'success')
 
+        flash('Post Updated', 'success')
         return redirect(url_for('post', post_id=post.id))
     elif request.method == 'GET':
         ingredients_list = post.ingredients.split('\n')
@@ -158,11 +179,18 @@ def delete_post(post_id):
 def handle_search():
     query = request.args['search']
     post = Post.query.filter    (func.lower(Post.title) == func.lower(query)).first()
-    if post and query:  
+    if post and query and post.private != True:  
         flash(f'Found result for {post.title}', 'success')
         return redirect(url_for('post', post_id=post.id))
+    elif post.private == True:
+        if current_user == post.author:
+            flash(f'Found result for {post.title}', 'success')
+            return redirect(url_for('post', post_id=post.id))
+        else:
+            flash('This post is private', 'danger')
     elif query:
         flash(f'No result for {query}', 'danger')
     else:
         flash('Please enter search query', 'danger')
     return redirect(url_for('home'))
+

@@ -1,16 +1,15 @@
 {% extends "layout.html" %}
 {% block content %}
     <div class="dropdown">
-        <button class="btn btn-secondary dropdown-toggle mb-2" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-        {{drop_title}}
+        <button class="btn btn-secondary dropdown-toggle" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+        Feed type
         </button>
         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-        <li><a class="dropdown-item" href="{{url_for('home')}}">All recipes</a></li>
-        <li><a class="dropdown-item" href="{{url_for('personal_home')}}">Your recipes</a></li>
+        <li><a class="dropdown-item" href="{{url_for('home')}}">Public</a></li>
+        <li><a class="dropdown-item" href="{{url_for('personal_home')}}">Personal</a></li>
         </ul>
     </div>
     {% for post in posts %}
-        {%if post.private == False or current_user == post.author%}
         <article class="media content-section">
             <img class="rounded-circle article-img" src="{{url_for('static', filename='profile_pics/' + post.author.image_file)}}">
             <div class="media-body">
@@ -29,7 +28,5 @@
                 </ul>
             </div>
         </article>
-        {%endif%}
     {% endfor %}
-
 {% endblock content %}
