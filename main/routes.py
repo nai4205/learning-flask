@@ -1,7 +1,7 @@
 import secrets
 import os
 from PIL import Image
-from flask import render_template, url_for, flash, redirect, request, abort
+from flask import render_template, url_for, flash, redirect, request, abort, session
 from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm
 from main.models import User, Post
 from main import app, bcrypt, db
@@ -126,15 +126,22 @@ def update_post(post_id):
     if form.validate_on_submit():
         post.title = form.title.data
         post.content = form.content.data
+        ingredients_list = form.ingredients.data.split('\n')
+        ingredients = '\n'.join(f'{ingredient.strip()}' for ingredient in ingredients_list if ingredient.strip())
+        post.ingredients = ingredients
         db.session.commit()
         flash('Post Updated', 'success')
+
         return redirect(url_for('post', post_id=post.id))
     elif request.method == 'GET':
+        ingredients_list = post.ingredients.split('\n')
+        form.ingredients.data = post.ingredients
         form.title.data = post.title
         form.content.data = post.content
-    return render_template('create_post.html', title='Update post', form=form, legend='Update Post')
+        session['ingredients_len'] = len(post.ingredients.split('\n'))
+    return render_template('create_post.html', title='Update post', form=form, legend='Update Post', post=post)
 
-@app.route("/post/<int:post_id>/delete", methods=['POST'])
+@app.route("/post/<int:post_id>/delete", methods=['POST', 'GET'])
 @login_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)

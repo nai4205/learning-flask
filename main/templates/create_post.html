@@ -85,7 +85,7 @@
         ingredientRow.classList.add('ingredient-row');
         
         const ingredientInput = document.createElement('textarea');
-        ingredientInput.classList.add('form-control', 'form-control-lg', 'mb-1', 'mt-1');
+        ingredientInput.classList.add('form-control', 'form-control-lg');
         ingredientInput.rows = 1;
         ingredientInput.name = `ingredient_${ingredientCount}`;
         ingredientInput.addEventListener('input', updateHiddenTextarea);
@@ -135,6 +135,33 @@
         }
         hiddenIngredientsTextarea.value = ingredientTexts.join('\n');
     }
+
+    // Populate ingredient fields and open text boxes based on stored data
+    var storedIngredients = {{ form.ingredients.data|tojson }};
+    if(storedIngredients){
+        var array = storedIngredients.split('\n').map(function(item) {
+        return item.trim();
+    });
+    }
+    
+    storedIngredients = array
+    const storedIngredientsLength = parseInt({{ session['ingredients_len'] }});
+    
+    // Check if there are stored ingredients
+    if (storedIngredients && Array.isArray(storedIngredients) && storedIngredientsLength > 0) {
+        // Open the correct number of text boxes
+        while (ingredientCount <= storedIngredientsLength) {
+            addIngredientField();
+        }
+        
+        // Populate the text boxes with stored ingredients
+        for (let i = 0; i < storedIngredients.length; i++) {
+            const ingredientInput = document.querySelector(`textarea[name="ingredient_${i+1}"]`);
+            if (ingredientInput) {
+                ingredientInput.value = storedIngredients[i];
+            }
+        }
+    }
     
     // Add event listener to the plus button to add new ingredient fields
     addButton.addEventListener('click', addIngredientField);
@@ -143,6 +170,18 @@
     removeButton.addEventListener('click', removeLastIngredientField);
 </script>
 
+
+
+
+<!-- ingredients = {{form.ingredients.data|tojson}};
+ingredients_len = {{session['ingredients_len']}}
+
+ingredients.split('\n')
+for(i in ingredients){
+    if (ingredients[i].length != 0){
+        console.log(ingredients[i]);
+    }
+} -->
 
 
 
