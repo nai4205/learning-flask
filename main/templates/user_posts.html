@@ -15,7 +15,7 @@
         {%endif%}
     </div>
     {% for post in posts.items %}
-        {%if post.private == False or current_user == post.author%}
+        {%if post.private == False or current_user == post.author and post.display%}
         <article class="media content-section">
             <img class="rounded-circle article-img" src="{{url_for('static', filename='profile_pics/' + post.author.image_file)}}">
             <div class="media-body">

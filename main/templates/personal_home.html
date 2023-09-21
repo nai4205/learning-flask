@@ -11,6 +11,7 @@
         </ul>
     </div>
     {% for post in posts %}
+        {%if post.display%}
         <article class="media content-section">
             <img class="rounded-circle article-img" src="{{url_for('static', filename='profile_pics/' + post.author.image_file)}}">
             <div class="media-body">
@@ -35,5 +36,6 @@
                 </ul>
             </div>
         </article>
+        {%endif%}
     {% endfor %}
 {% endblock content %}

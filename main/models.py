@@ -25,10 +25,12 @@ class Post(db.Model):
     content = db.Column(db.Text, nullable=False)
     ingredients = db.Column(db.Text, nullable=False)
     private = db.Column(db.Boolean)
+    display = db.Column(db.Boolean, default=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     def __repr__(self):
         return f"Post('{self.title}', '{self.date_posted}')"
+    
     
 class SavePost(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)

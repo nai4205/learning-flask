@@ -1,10 +1,12 @@
 import secrets
 import os
 from PIL import Image
-from flask import render_template, url_for, flash, redirect, request, abort, session
-from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm
+from flask import render_template, url_for, flash, redirect, request, abort, session, make_response
+from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm, SearchForm
 from main.models import User, Post, SavePost
 from main import app, bcrypt, db
+import requests
+from bs4 import BeautifulSoup
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import func
 
@@ -15,7 +17,7 @@ def home():
     page = request.args.get('page', 1, type=int)
     if current_user.is_authenticated:
         saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
-    posts = Post.query.order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
+    posts = Post.query.order_by(Post.date_posted.desc()).filter_by(display=True).paginate(per_page=5, page=page)
     return render_template('home.html', posts=posts, drop_title="All recipes", saved_post_id=saved_post_id)
 
 @app.route("/personal_home")
@@ -23,7 +25,7 @@ def home():
 def personal_home():
     page = request.args.get('page', 1, type=int)
     saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
-    posts = Post.query.filter_by(author=current_user).order_by(Post.date_posted.desc()).paginate(per_page=5 , page=page)
+    posts = Post.query.filter_by(author=current_user).filter_by(display=True).order_by(Post.date_posted.desc()).paginate(per_page=5 , page=page)
     if posts:
         return render_template('home.html', posts=posts, drop_title="Your recipes", saved_post_id=saved_post_id)
     else:
@@ -31,7 +33,7 @@ def personal_home():
         return redirect(url_for('home'))
     
 @app.route("/saved_posts")
-@login_required
+@login_required 
 def saved_posts():
     page = request.args.get('page', 1, type=int)
     posts = SavePost.query.filter_by(user_id=current_user.id).order_by(SavePost.id.desc()).paginate(per_page=5, page=page)
@@ -194,8 +196,11 @@ def update_post(post_id):
 @login_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
+    saved_post = SavePost.query.filter_by(user_id=current_user.id, post_id=post_id).first()
     if post.author != current_user:
         abort(403)
+    
+    db.session.delete(saved_post)
     db.session.delete(post)
     db.session.commit()
     flash("Post Deleted", 'success')
@@ -239,5 +244,106 @@ def save_post(post_id):
         db.session.add(save_post)
         db.session.commit()
         return redirect(request.referrer)
+    
+@app.route("/search_ingredients/save_post/<title>/<content>/<ingredients>")
+@login_required
+def save_post_from_search(title, content, ingredients):
+
+    ingredients_string = '\n'.join(ingredient.strip() for ingredient in str(ingredients).replace('[','').replace(']','').replace('\'','').split(','))
 
 
+    new_post = Post(title=title, content=content, ingredients=ingredients_string, author=current_user, display=False)
+    db.session.add(new_post)    
+    db.session.commit()
+
+    save_post = SavePost(user_id=current_user.id, post_id=new_post.id)
+    db.session.add(save_post)
+    db.session.commit()
+
+    
+    return make_response("", 204)
+
+@app.route("/search_ingredients/<string:food_category>", methods=['GET', 'POST'])
+def search_ingredients(food_category):
+    form = SearchForm()
+    if not food_category:
+        food_category = "Lunch"
+    class RecipeScraper:
+        def __init__(self, url):
+            self.url = url
+            self.page = requests.get(self.url)
+            self.soup = BeautifulSoup(self.page.content, "html.parser")
+            self.results = self.soup.find(class_="layout-md-rail__primary")  # List of all recipes
+            self.recipe_elements = self.results.find_all("div", class_="card__section card__content")  # Content of individual recipe (just preview)
+
+        def get_recipe_links(self):
+            links_list = []
+            for recipe_element in self.recipe_elements:
+                links = recipe_element.find_all("a")
+                for link in links:
+                    link_url = link["href"]
+                    links_list.append(link_url)
+            links_list.pop(0)
+            return links_list
+
+        def get_matching_ingredient_count(self, ingredients, search_terms):
+            count = 0
+            for term in search_terms:
+                for ingredient in ingredients:
+                    if term.lower() in ingredient.lower():
+                        count += 1
+            return count
+
+        def get_ingredients_with_search(self, search_terms):
+            recipe_info = []  # List to store recipe information tuples
+            for link in self.get_recipe_links():
+                #GET INGREDIENTS
+                recipe_page = requests.get("https://www.bbcgoodfood.com" + link)
+                new_soup = BeautifulSoup(recipe_page.content, "html.parser")
+                recipe_name = new_soup.find("h1").text.strip()
+                ingredients_and_recipe_section = new_soup.find("div", class_="row recipe__instructions")
+                ingredients_section = ingredients_and_recipe_section.find(class_="recipe__ingredients col-12 mt-md col-lg-6")
+                ingredients_list = ingredients_section.find_all("li")
+                ingredients = [ingredient.get_text() for ingredient in ingredients_list]
+
+                #GET METHOD
+                method_section = ingredients_and_recipe_section.find(class_="recipe__method-steps mb-lg col-12 col-lg-6")
+                method_list = method_section.find_all("li")
+                method = [method.get_text() for method in method_list]
+
+                matching_count = self.get_matching_ingredient_count(ingredients, search_terms)
+                matching_terms = [term for term in search_terms if any(term.lower() in ingredient.lower() for ingredient in ingredients)]
+
+                if matching_count > 0:
+                    recipe_info.append((recipe_name, ingredients, method))
+
+            
+            sorted_results = sorted(recipe_info, key=lambda x: x[1], reverse=True) #Sorts the list by element 1 (matching_count) then reverses the order to get
+                                                                                #a descending list 
+            return sorted_results
+
+    if form.validate_on_submit():
+        # Example usage
+        try:
+            scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+food_category.lower()+"-recipes")
+        except:
+            flash("Error: No recipes with that search term", "danger")
+            return redirect(url_for('search_ingredients', food_category=food_category))
+        search_terms = form.ingredients.data.split('\n')
+        matching_ingredient_results = scraper.get_ingredients_with_search(search_terms)
+
+        recipe_dict = {
+                'title': [],
+                'content': [],
+                'ingredients': [],
+                'already_saved': False
+            }
+        for recipe_name, ingredients, method in matching_ingredient_results:
+            recipe_dict['title'].append(recipe_name)
+            recipe_dict['ingredients'].append(ingredients)
+            recipe_dict['content'].append(method)
+            
+
+        
+        return render_template('search_ingredients.html', form=form, posts=recipe_dict, drop_title=food_category)
+    return render_template('search_ingredients.html', form=form, searching=False, drop_title=food_category)
