@@ -1,0 +1,163 @@
+{% extends "layout.html" %}
+{% block content %}
+<div class="content-section">
+    <form method="POST" action="">
+        {{ form.hidden_tag() }}
+        <fieldset class="form-group">
+            <legend class="border-bottom mb-4">Search ingredients</legend>
+            <div class="dropdown">
+                <button class="btn btn-secondary dropdown-toggle mb-2" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                {{drop_title}}
+                </button>
+                
+                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
+                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Lunch')}}">Lunch</a></li>
+                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Chicken')}}">Chicken</a></li>
+                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Beef')}}">Beef</a></li>
+                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Cheese')}}">Cheese</a></li>
+                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Pasta')}}">Pasta</a></li>
+                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Dessert')}}">Dessert</a></li>
+
+                </ul>
+            </div>
+            {%if posts%}
+                {% for i in range((posts|length)-1)%}
+                    <article class="media content-section">
+                        <div class="media-body"> 
+                            <h2><p class="article-title title-text">{{ posts['title'][i] }}</a>
+                            {%if posts['already_saved'][i]%}
+                            <a href="{{url_for('save_post_from_search',  title=posts['title'][i], content=''.join(posts['content'][i]).replace('[','').replace(']','').replace('\'',''), ingredients=posts['ingredients'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                            {%else%}
+                            <a href="" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                            {%endif%}
+                            </h2>
+                            <h3><p class="article-ingredients">Method:</p></h3>
+                            <p class="article-content description-text method-container">{{ ''.join(posts['content'][i]).replace('[','').replace(']','').replace('\'','') }}</p>
+                            <h3><p class="article-ttle">Ingredients:</p></h3>
+                            <ul class="article-ingredients ingredients-text">
+                                {% for ingredient in posts['ingredients'][i] %}
+                                    <li>{{ ingredient.strip() }}</li><br>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </article>
+                {% endfor %}
+            {%endif%}
+
+            <div class="form-group">
+                {{ form.ingredients.label(class="form-control-label") }}
+                {% if form.ingredients.errors %}
+                {{ form.ingredients(class="form-control form-control-lg is-invalid") }}
+                <div class="invalid-feedback">
+                    {% for error in form.ingredients.errors %}
+                    <span> {{ error }} </span>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="ingredients-input">
+                    <div class="ingredient-row">
+                        <button type="button" class="btn btn-secondary add-ingredient mt-2 mb-2">+</button>
+                        <button type="button" class="btn btn-danger remove-ingredient mt-2 mb-2" disabled>-</button>
+
+                        {{ form.ingredients(class="invisible", rows=1) }}
+                    </div>
+                </div>
+                {% endif %}
+            
+            </div>
+
+            <div class="form-group pt-3">
+                <button class='button btn-secondary' type="submit" name="submit_type">Search</a>
+            </div>
+        
+            
+        </fieldset>
+    </form>
+</div>
+
+<script>
+    const ingredientsContainer = document.querySelector('.ingredients-input');
+    
+    const hiddenIngredientsTextarea = document.querySelector('textarea[name="ingredients"]');
+    
+    const addButton = document.querySelector('.add-ingredient');
+    
+    const removeButton = document.querySelector('.remove-ingredient');
+    
+    let ingredientCount = 1;
+    
+    function addIngredientField() {
+        const ingredientRow = document.createElement('div');
+        ingredientRow.classList.add('ingredient-row', 'mb-1', 'mt-1');
+
+        const ingredientInput = document.createElement('textarea');
+        ingredientInput.classList.add('form-control', 'form-control-lg');
+        ingredientInput.rows = 1;
+        ingredientInput.name = `ingredient_${ingredientCount}`;
+        ingredientInput.addEventListener('input', updateHiddenTextarea);
+        
+        ingredientRow.appendChild(ingredientInput);
+        ingredientsContainer.appendChild(ingredientRow);
+        
+        ingredientCount++;
+        
+        if (ingredientCount > 1) {
+            removeButton.disabled = false;
+        }
+    }
+    
+    function removeLastIngredientField() {
+        if (ingredientCount > 1) {
+            const lastIngredientRow = ingredientsContainer.lastElementChild;
+            const lastIngredientInput = lastIngredientRow.querySelector('textarea');
+            
+            ingredientsContainer.removeChild(lastIngredientRow);
+            
+            ingredientCount--;
+            
+            if (ingredientCount === 1) {
+                removeButton.disabled = true;
+            }
+            
+            updateHiddenTextarea();
+        }
+    }
+    
+    function updateHiddenTextarea() {
+        const ingredientTexts = [];
+        for (let i = 1; i < ingredientCount; i++) {
+            const ingredientInput = document.querySelector(`textarea[name="ingredient_${i}"]`);
+            if (ingredientInput) {
+                ingredientTexts.push(ingredientInput.value);
+            }
+        }
+        hiddenIngredientsTextarea.value = ingredientTexts.join('\n');
+    }
+
+    var storedIngredients = {{ form.ingredients.data|tojson }};
+    if(storedIngredients){
+        var array = storedIngredients.split('\n').map(function(item) {
+        return item.trim();
+    });
+    }
+    
+
+    
+    addButton.addEventListener('click', addIngredientField);
+    removeButton.addEventListener('click', removeLastIngredientField);
+
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% endblock content %}

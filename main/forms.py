@@ -68,6 +68,10 @@ class PostForm(FlaskForm):
     content = TextAreaField('Content', validators=[DataRequired()])
     ingredients = TextAreaField('Ingredients', validators=[DataRequired()], render_kw={"rows": 5})  # Set rows for the textarea
     submit = SubmitField('Post')
+
+class SearchForm(FlaskForm):
+    ingredients = TextAreaField('Ingredients', validators=[DataRequired()])
+    submit = SubmitField('Search')
     
 
     
