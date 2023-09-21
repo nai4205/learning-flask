@@ -27,11 +27,21 @@
                 <h2><a class="article-title title-text " href="{{url_for('post', post_id=post.id)}}">{{ post.title }}</a>
                 <span class="lead material-symbols-rounded">
                 lock</span>
+                {%if post.id is in saved_post_id%}
+                <a href="{{url_for('save_post', post_id=post.id)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                {%else%}
+                <a href="{{url_for('save_post', post_id=post.id)}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                {%endif%}
                 </h2>
                 {%else%}
                 <h2><a class="article-title title-text " href="{{url_for('post', post_id=post.id)}}">{{ post.title }}</a>
                 <span class="article-title title-text material-symbols-rounded">
                 lock_open</span>
+                {%if post.id is in saved_post_id%}
+                <a href="{{url_for('save_post', post_id=post.id)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                {%else%}
+                <a href="{{url_for('save_post', post_id=post.id)}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                {%endif%}
                 </h2>
                 {%endif%}
                 <h3><p class="article-ingredients">Method:</p></h3>

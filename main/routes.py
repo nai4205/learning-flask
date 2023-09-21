@@ -3,29 +3,50 @@ import os
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort, session
 from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm
-from main.models import User, Post
+from main.models import User, Post, SavePost
 from main import app, bcrypt, db
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import func
-
 
 @app.route("/")
 @app.route("/home")
 def home():
     page = request.args.get('page', 1, type=int)
+    saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
     posts = Post.query.order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
-    return render_template('home.html', posts=posts, drop_title="All recipes")
+    return render_template('home.html', posts=posts, drop_title="All recipes", saved_post_id=saved_post_id)
 
 @app.route("/personal_home")
 @login_required
 def personal_home():
     page = request.args.get('page', 1, type=int)
+    saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
     posts = Post.query.filter_by(author=current_user).order_by(Post.date_posted.desc()).paginate(per_page=5 , page=page)
     if posts:
-        return render_template('home.html', posts=posts, drop_title="Your recipes")
+        return render_template('home.html', posts=posts, drop_title="Your recipes", saved_post_id=saved_post_id)
     else:
         flash("You haven't posted anything!", "danger")
         return redirect(url_for('home'))
+    
+@app.route("/saved_posts")
+@login_required
+def saved_posts():
+    page = request.args.get('page', 1, type=int)
+    posts = SavePost.query.filter_by(user_id=current_user.id).order_by(SavePost.id.desc()).paginate(per_page=5, page=page)
+    if posts:
+        post = [Post.query.get_or_404(post.post_id) for post in posts.items]
+        return render_template('saved_posts.html', posts=post, drop_title="Saved recipes")
+    else:
+        flash("You haven't saved any posts!", "danger")
+        return redirect(url_for('home'))
+    
+@app.route("/user/<string:username>")
+def user_posts(username):
+    page = request.args.get('page', 1, type=int)
+    saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
+    user = User.query.filter_by(username=username).first_or_404()
+    posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
+    return render_template('user_posts.html', posts=posts, user=user, searching=True, saved_post_id=saved_post_id)
 
 @app.route("/about")
 def about():
@@ -198,9 +219,20 @@ def handle_search():
     return redirect(url_for('home'))
 
 
-@app.route("/user/<string:username>")
-def user_posts(username):
-    page = request.args.get('page', 1, type=int)
-    user = User.query.filter_by(username=username).first_or_404()
-    posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
-    return render_template('user_posts.html', posts=posts, user=user, searching=True)
+
+
+@app.route("/save_post/<int:post_id>")
+@login_required
+def save_post(post_id):
+    post = Post.query.get_or_404(post_id)
+    save_post = SavePost(user_id=current_user.id, post_id=post_id)
+    if SavePost.query.filter_by(user_id=current_user.id, post_id=post_id).first():
+        db.session.delete(SavePost.query.filter_by(user_id=current_user.id, post_id=post_id).first())
+        db.session.commit() 
+        return redirect(request.referrer)
+    else:
+        db.session.add(save_post)
+        db.session.commit()
+        return redirect(request.referrer)
+
+
