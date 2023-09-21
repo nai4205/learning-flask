@@ -11,8 +11,10 @@ from sqlalchemy import func
 @app.route("/")
 @app.route("/home")
 def home():
+    saved_post_id = []
     page = request.args.get('page', 1, type=int)
-    saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
+    if current_user.is_authenticated:
+        saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
     posts = Post.query.order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
     return render_template('home.html', posts=posts, drop_title="All recipes", saved_post_id=saved_post_id)
 
@@ -229,6 +231,9 @@ def save_post(post_id):
     if SavePost.query.filter_by(user_id=current_user.id, post_id=post_id).first():
         db.session.delete(SavePost.query.filter_by(user_id=current_user.id, post_id=post_id).first())
         db.session.commit() 
+        return redirect(request.referrer)
+    elif post.private == True and current_user != post.author:
+        flash('This recipe is private', 'danger')
         return redirect(request.referrer)
     else:
         db.session.add(save_post)
