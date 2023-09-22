@@ -4,7 +4,7 @@ from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort, session, make_response
 from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm, SearchForm, RequestResetForm, ResetPasswordForm
 from main.models import User, Post, SavePost
-from main import app, bcrypt, db, mail
+from main import app, bcrypt, db, api_key
 import requests
 from bs4 import BeautifulSoup
 from flask_login import login_user, current_user, logout_user, login_required
@@ -359,7 +359,7 @@ def send_reset_email(user):
     token = user.get_reset_token()
     requests.post(
 		"https://api.mailgun.net/v3/sandboxc269e18fa0754823849aac86d667cab3.mailgun.org/messages",
-		auth=("api", "2afb47b30dd4ff4e54d8185ff93ba09e-4b98b89f-0ff8c65c"),
+		auth=("api", api_key),
 		data={"from": "noreply@gmail.com",
 			"to": user.email,
 			"subject": "Password Reset Request",
