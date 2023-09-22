@@ -5,7 +5,7 @@
         {{ form.hidden_tag() }}
         <fieldset class="form-group">
             <legend class="border-bottom mb-4">Search ingredients</legend>
-            <div class="dropdown">
+            <!-- <div class="dropdown">
                 <button class="btn btn-secondary dropdown-toggle mb-2" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                 {{drop_title}}
                 </button>
@@ -19,14 +19,15 @@
                 <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Dessert')}}">Dessert</a></li>
 
                 </ul>
-            </div>
+            </div> -->
             {%if posts%}
                 {% for i in range((posts|length)-1)%}
+                    {%if posts['ingredients'][i]|length > 0%}
                     <article class="media content-section">
                         <div class="media-body"> 
                             <h2><p class="article-title title-text">{{ posts['title'][i] }}</a>
-                            {%if posts['already_saved'][i]%}
-                            <a href="{{url_for('save_post_from_search',  title=posts['title'][i], content=''.join(posts['content'][i]).replace('[','').replace(']','').replace('\'',''), ingredients=posts['ingredients'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                            {%if posts['already_saved'][i] == False%}
+                            <a href="{{url_for('save_post_from_search',  title=posts['title'][i], content=''.join(posts['content'][i]).replace('[','').replace(']','').replace('\'','').replace('%25', '%'), ingredients=posts['ingredients'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
                             {%else%}
                             <a href="" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
                             {%endif%}
@@ -41,6 +42,7 @@
                             </ul>
                         </div>
                     </article>
+                    {%endif%}
                 {% endfor %}
             {%endif%}
 
@@ -150,6 +152,33 @@
 
 
 
+
+
+
+
+
+
+<script>
+function sendPostRequest(url) {
+    // Create a new FormData object
+    var formData = new FormData();
+
+    // Add any data you want to send as POST parameters
+    formData.append("parameter_name", "parameter_value");
+
+    // Send the POST request using the fetch API
+    fetch(url, {
+        method: "POST",
+        body: formData,
+    })
+    .then(response => {
+        // Handle the response if needed
+    })
+    .catch(error => {
+        // Handle errors if the request fails
+    });
+}
+</script>
 
 
 

@@ -9,6 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import func
+from urllib.parse import quote
 
 @app.route("/")
 @app.route("/home")
@@ -27,7 +28,7 @@ def personal_home():
     saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
     posts = Post.query.filter_by(author=current_user).filter_by(display=True).order_by(Post.date_posted.desc()).paginate(per_page=5 , page=page)
     if posts:
-        return render_template('home.html', posts=posts, drop_title="Your recipes", saved_post_id=saved_post_id)
+        return render_template('personal_home.html', posts=posts, drop_title="Your recipes", saved_post_id=saved_post_id)
     else:
         flash("You haven't posted anything!", "danger")
         return redirect(url_for('home'))
@@ -245,29 +246,26 @@ def save_post(post_id):
         db.session.commit()
         return redirect(request.referrer)
     
-@app.route("/search_ingredients/save_post/<title>/<content>/<ingredients>")
+@app.route("/search_ingredients/save_post/<title>/<content>/<ingredients>", methods=['GET', 'POST'])
 @login_required
 def save_post_from_search(title, content, ingredients):
-
     ingredients_string = '\n'.join(ingredient.strip() for ingredient in str(ingredients).replace('[','').replace(']','').replace('\'','').split(','))
 
 
     new_post = Post(title=title, content=content, ingredients=ingredients_string, author=current_user, display=False)
     db.session.add(new_post)    
     db.session.commit()
-
+    
     save_post = SavePost(user_id=current_user.id, post_id=new_post.id)
     db.session.add(save_post)
     db.session.commit()
 
     
-    return make_response("", 204)
+    return redirect(url_for('search_ingredients'))
 
-@app.route("/search_ingredients/<string:food_category>", methods=['GET', 'POST'])
-def search_ingredients(food_category):
+@app.route("/search_ingredients", methods=['GET', 'POST'])
+def search_ingredients():
     form = SearchForm()
-    if not food_category:
-        food_category = "Lunch"
     class RecipeScraper:
         def __init__(self, url):
             self.url = url
@@ -325,10 +323,10 @@ def search_ingredients(food_category):
     if form.validate_on_submit():
         # Example usage
         try:
-            scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+food_category.lower()+"-recipes")
+            scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+"lunch".lower()+"-recipes")
         except:
             flash("Error: No recipes with that search term", "danger")
-            return redirect(url_for('search_ingredients', food_category=food_category))
+            return redirect(url_for('search_ingredients'))
         search_terms = form.ingredients.data.split('\n')
         matching_ingredient_results = scraper.get_ingredients_with_search(search_terms)
 
@@ -336,14 +334,21 @@ def search_ingredients(food_category):
                 'title': [],
                 'content': [],
                 'ingredients': [],
-                'already_saved': False
+                'already_saved': []
             }
         for recipe_name, ingredients, method in matching_ingredient_results:
             recipe_dict['title'].append(recipe_name)
             recipe_dict['ingredients'].append(ingredients)
             recipe_dict['content'].append(method)
-            
 
+            post = Post.query.filter(Post.title == recipe_name).first()
+            if post:
+                if post.display == False and current_user == post.author:
+                    recipe_dict['already_saved'].append(True)
+            else:
+                recipe_dict['already_saved'].append(False)
+                
         
-        return render_template('search_ingredients.html', form=form, posts=recipe_dict, drop_title=food_category)
-    return render_template('search_ingredients.html', form=form, searching=False, drop_title=food_category)
+        return render_template('search_ingredients.html', form=form, posts=recipe_dict)
+    return render_template('search_ingredients.html', form=form, searching=False)
+
