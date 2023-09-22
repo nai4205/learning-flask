@@ -2,14 +2,15 @@ import secrets
 import os
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort, session, make_response
-from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm, SearchForm
+from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm, SearchForm, RequestResetForm, ResetPasswordForm
 from main.models import User, Post, SavePost
-from main import app, bcrypt, db
+from main import app, bcrypt, db, mail
 import requests
 from bs4 import BeautifulSoup
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import func
-from urllib.parse import quote
+from flask_mail import Message
+
 
 @app.route("/")
 @app.route("/home")
@@ -236,6 +237,8 @@ def save_post(post_id):
     save_post = SavePost(user_id=current_user.id, post_id=post_id)
     if SavePost.query.filter_by(user_id=current_user.id, post_id=post_id).first():
         db.session.delete(SavePost.query.filter_by(user_id=current_user.id, post_id=post_id).first())
+        if post.display == False:
+            db.session.delete(post)
         db.session.commit() 
         return redirect(request.referrer)
     elif post.private == True and current_user != post.author:
@@ -352,3 +355,50 @@ def search_ingredients():
         return render_template('search_ingredients.html', form=form, posts=recipe_dict)
     return render_template('search_ingredients.html', form=form, searching=False)
 
+def send_reset_email(user):
+    token = user.get_reset_token()
+    requests.post(
+		"https://api.mailgun.net/v3/sandboxc269e18fa0754823849aac86d667cab3.mailgun.org/messages",
+		auth=("api", "2afb47b30dd4ff4e54d8185ff93ba09e-4b98b89f-0ff8c65c"),
+		data={"from": "noreply@gmail.com",
+			"to": user.email,
+			"subject": "Password Reset Request",
+			"text": f'''To reset your password, visit the following link: {url_for('reset_token', token=token, _external=True)}
+
+If you did not make this request, please ignore this email.
+    '''})
+    
+
+@app.route("/reset_password", methods=['GET', 'POST'])
+def reset_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    form = RequestResetForm()
+    if form.validate_on_submit(): 
+        user = User.query.filter_by(email=form.email.data).first()
+        send_reset_email(user)
+        flash('Email sent', 'info')
+    return render_template('reset_request.html', title='Reset Password', form=form)
+
+@app.route("/reset_password/<token>", methods=['GET', 'POST'])
+def reset_token(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
+    user = User.verify_reset_token(token)
+    if user is None:
+        flash('That is an invalid or expired token', 'warning')
+        return redirect(url_for('reset_request'))
+    
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user.password = hashed_password
+        db.session.commit()
+        flash('Password successfully changed', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_token.html', title='Reset Password', form=form)
+
+
+    
