@@ -15,7 +15,6 @@ from flask_paginate import Pagination, get_page_args
 
 
 
-
 @app.route("/")
 @app.route("/home")
 def home():
