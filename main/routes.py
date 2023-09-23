@@ -1,7 +1,7 @@
 import secrets
 import os
 from PIL import Image
-from flask import render_template, url_for, flash, redirect, request, abort, session, make_response
+from flask import render_template, url_for, flash, redirect, request, abort, session, jsonify, make_response
 from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm, SearchForm, RequestResetForm, ResetPasswordForm
 from main.models import User, Post, SavePost
 from main import app, bcrypt, db, api_key
@@ -10,6 +10,7 @@ from bs4 import BeautifulSoup
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import func
 from flask_mail import Message
+import concurrent.futures
 
 
 @app.route("/")
@@ -202,8 +203,10 @@ def delete_post(post_id):
     if post.author != current_user:
         abort(403)
     
-    db.session.delete(saved_post)
-    db.session.delete(post)
+    if post:
+        if saved_post:
+            db.session.delete(saved_post)
+        db.session.delete(post)
     db.session.commit()
     flash("Post Deleted", 'success')
     return redirect(url_for('home'))
@@ -211,22 +214,44 @@ def delete_post(post_id):
 @app.route("/handle_search")
 def handle_search():
     query = request.args['search']
+    all_post_titles_public = [post.title for post in Post.query.filter_by(private=False).all()]
     post = Post.query.filter(func.lower(Post.title) == func.lower(query)).first()
     if post and query and post.private != True:  
         flash(f'Found result for {post.title}', 'success')
         return redirect(url_for('post', post_id=post.id))
-    elif post.private == True:
+    elif post and post.private == True:
         if current_user == post.author:
             flash(f'Found result for {post.title}', 'success')
             return redirect(url_for('post', post_id=post.id))
         else:
-            flash('This recipe is private', 'danger')
+            flash(f'No result for {query}', 'danger')
+            return redirect(url_for('home'))
     elif query:
         flash(f'No result for {query}', 'danger')
     else:
         flash('Please enter search query', 'danger')
-    return redirect(url_for('home'))
+    return render_template('layout.html', post_titles = all_post_titles_public)
 
+@app.route('/search_predictions')
+def search_predictions():
+    all_post_titles = [post.title for post in Post.query.all()]
+    query = request.args.get('query', '').lower()
+
+    if current_user.is_authenticated:
+        recipe_titles= [post.title for post in Post.query.filter_by(private=False).all()] + [post.title for post in Post.query.filter_by(author=current_user).all()]
+    else:
+        recipe_titles = [post.title for post in Post.query.filter_by(private=False).all()]
+
+    unique_predictions = set()
+
+    for title in recipe_titles:
+        if query in title.lower():
+            unique_predictions.add(title)
+
+    max_predictions = 5
+    predictions = list(unique_predictions)[:max_predictions]
+
+    return jsonify(predictions)
 
 
 
@@ -249,9 +274,13 @@ def save_post(post_id):
         db.session.commit()
         return redirect(request.referrer)
     
-@app.route("/search_ingredients/save_post/<title>/<content>/<ingredients>", methods=['GET', 'POST'])
+@app.route("/search_ingredients/save_post/<title>", methods=['GET', 'POST'])
 @login_required
-def save_post_from_search(title, content, ingredients):
+def save_post_from_search(title):
+    recipe = recipe_dict['title'].index(title)    
+    content=recipe_dict['content'][recipe]
+    content = ''.join(content).replace('[','').replace(']','').replace('\'','').replace('%25', '%')
+    ingredients=recipe_dict['ingredients'][recipe]
     ingredients_string = '\n'.join(ingredient.strip() for ingredient in str(ingredients).replace('[','').replace(']','').replace('\'','').split(','))
     form=SearchForm()
 
@@ -302,61 +331,76 @@ def search_ingredients():
             count = sum(term in ingredient for term in lower_search_terms for ingredient in lower_ingredients)
             return count
 
+        def scrape_recipe(self, link, search_terms):
+            recipe_page = requests.get("https://www.bbcgoodfood.com" + link)
+            new_soup = BeautifulSoup(recipe_page.content, "html.parser")
+            recipe_name = new_soup.find("h1").text.strip()
+            ingredients_and_recipe_section = new_soup.find("div", class_="row recipe__instructions")
+            ingredients_section = ingredients_and_recipe_section.find(class_="recipe__ingredients col-12 mt-md col-lg-6")
+            ingredients_list = ingredients_section.find_all("li")
+            ingredients = [ingredient.get_text() for ingredient in ingredients_list]
+
+            method_section = ingredients_and_recipe_section.find(class_="recipe__method-steps mb-lg col-12 col-lg-6")
+            method_list = method_section.find_all("li")
+            method = [method.get_text() for method in method_list]
+
+            matching_count = self.get_matching_ingredient_count(ingredients, search_terms)
+            matching_terms = [term for term in search_terms if any(term.lower() in ingredient.lower() for ingredient in ingredients)]
+
+            if matching_count > 0:
+                return (recipe_name, ingredients, method)
+            else:
+                return None
+
         def get_ingredients_with_search(self, search_terms):
             recipe_info = []
+            links = self.get_recipe_links()
 
-            for link in self.get_recipe_links():
-                recipe_page = requests.get("https://www.bbcgoodfood.com" + link)
-                new_soup = BeautifulSoup(recipe_page.content, "html.parser")
-                recipe_name = new_soup.find("h1").text.strip()
-                ingredients_and_recipe_section = new_soup.find("div", class_="row recipe__instructions")
-                ingredients_section = ingredients_and_recipe_section.find(class_="recipe__ingredients col-12 mt-md col-lg-6")
-                ingredients_list = ingredients_section.find_all("li")
-                ingredients = [ingredient.get_text() for ingredient in ingredients_list]
+            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+                results = [executor.submit(self.scrape_recipe, link, search_terms) for link in links]
 
-                method_section = ingredients_and_recipe_section.find(class_="recipe__method-steps mb-lg col-12 col-lg-6")
-                method_list = method_section.find_all("li")
-                method = [method.get_text() for method in method_list]
-
-                matching_count = self.get_matching_ingredient_count(ingredients, search_terms)
-                matching_terms = [term for term in search_terms if any(term.lower() in ingredient.lower() for ingredient in ingredients)]
-
-                if matching_count > 0:
-                    recipe_info.append((recipe_name, ingredients, method))
+                for result in concurrent.futures.as_completed(results):
+                    if result.result() is not None:
+                        recipe_info.append(result.result())
 
             sorted_results = sorted(recipe_info, key=lambda x: x[1], reverse=True)
             return sorted_results
-
-    if form.validate_on_submit():
-        # Example usage
-        try:
-            scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+"lunch".lower()+"-recipes")
-        except:
-            flash("Error: No recipes with that search term", "danger")
-            return redirect(url_for('search_ingredients'))
-        search_terms = form.ingredients.data.split('\n')
-        matching_ingredient_results = scraper.get_ingredients_with_search(search_terms)
-        global recipe_dict
-        recipe_dict = {
+    
+    global recipe_dict
+    recipe_dict = {
                 'title': [],
                 'content': [],
                 'ingredients': [],
                 'already_saved': []
             }
-        for recipe_name, ingredients, method in matching_ingredient_results:
-            recipe_dict['title'].append(recipe_name)
-            recipe_dict['ingredients'].append(ingredients)
-            recipe_dict['content'].append(method)
 
-            post = Post.query.filter(Post.title == recipe_name).first()
-            if post:
-                if post.display == False and current_user == post.author:
-                    recipe_dict['already_saved'].append(True)
-            else:
-                recipe_dict['already_saved'].append(False)
+    if form.validate_on_submit():
+        category_list = ["lunch", "dessert", "beef"]
+        for recipe_type in category_list:
+            try:
+                scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+recipe_type+"-recipes")
+                search_terms = form.ingredients.data.split('\n')
+                matching_ingredient_results = scraper.get_ingredients_with_search(search_terms)
+                
+                for recipe_name, ingredients, method in matching_ingredient_results:
+                    recipe_dict['title'].append(str(recipe_name))
+                    recipe_dict['ingredients'].append(ingredients)
+                    recipe_dict['content'].append(str(method))
+
+                    post = Post.query.filter(Post.title == recipe_name).first()
+                    if post:
+                        if post.display == False and current_user == post.author:
+                            recipe_dict['already_saved'].append(True)
+                    else:
+                        recipe_dict['already_saved'].append(False)
+            except:
+                print("Error: No recipes with that search term")
+                return redirect(url_for('search_ingredients'))
+
+        return render_template('search_ingredients.html', form=form, posts=recipe_dict)
+        
                 
         
-        return render_template('search_ingredients.html', form=form, posts=recipe_dict)
     return render_template('search_ingredients.html', form=form, searching=False)
 
 
