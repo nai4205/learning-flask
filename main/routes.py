@@ -11,6 +11,9 @@ from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import func
 from flask_mail import Message
 import concurrent.futures
+from flask_paginate import Pagination, get_page_args
+
+
 
 
 @app.route("/")
@@ -300,13 +303,15 @@ def save_post_from_search(title):
 def delete_post_from_search(title):
     form=SearchForm()
     post = Post.query.filter_by(title=title).first()
-    save_post = SavePost.query.filter_by(user_id=current_user.id, post_id=post.id).first()
-    if post.display == False and current_user == post.author and save_post:
+    if post:
+        save_post = SavePost.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+    if post and post.display == False and current_user == post.author and save_post:
         db.session.delete(save_post)
         db.session.delete(post)
         db.session.commit()
         
-    recipe_dict['already_saved'][recipe_dict['title'].index(title)] = False
+    if recipe_dict:
+        recipe_dict['already_saved'][recipe_dict['title'].index(title)] = False
     return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
 
 @app.route("/search_ingredients", methods=['GET', 'POST'])
@@ -375,7 +380,8 @@ def search_ingredients():
             }
 
     if form.validate_on_submit():
-        category_list = ["lunch", "dessert", "beef"]
+        category_list = ["lunch", "dessert", "beef", "savoury-pie", "storecupboard-comfort-food",
+                         "sausage", "chicken"]
         for recipe_type in category_list:
             try:
                 scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+recipe_type+"-recipes")
@@ -395,13 +401,12 @@ def search_ingredients():
                         recipe_dict['already_saved'].append(False)
             except:
                 print("Error: No recipes with that search term")
-                return redirect(url_for('search_ingredients'))
+    
 
         return render_template('search_ingredients.html', form=form, posts=recipe_dict)
-        
-                
-        
-    return render_template('search_ingredients.html', form=form, searching=False)
+    
+              
+    return render_template('search_ingredients.html', form=form, posts=recipe_dict, searching=False)
 
 
 def send_reset_email(user):
@@ -446,6 +451,8 @@ def reset_token(token):
         db.session.commit()
         flash('Password successfully changed', 'success')
         return redirect(url_for('login'))
+    
+    
     
     return render_template('reset_token.html', title='Reset Password', form=form)
 
