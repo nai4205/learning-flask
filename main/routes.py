@@ -329,11 +329,6 @@ def search_ingredients():
             links_list.pop(0)
             return links_list
 
-        def get_matching_ingredient_count(self, ingredients, search_terms):
-            lower_ingredients = [ingredient.lower() for ingredient in ingredients]
-            lower_search_terms = [term.lower() for term in search_terms]
-            count = sum(term in ingredient for term in lower_search_terms for ingredient in lower_ingredients)
-            return count
 
         def scrape_recipe(self, link, search_terms):
             recipe_page = requests.get("https://www.bbcgoodfood.com" + link)
@@ -348,13 +343,31 @@ def search_ingredients():
             method_list = method_section.find_all("li")
             method = [method.get_text() for method in method_list]
 
-            matching_count = self.get_matching_ingredient_count(ingredients, search_terms)
-            matching_terms = [term for term in search_terms if any(term.lower() in ingredient.lower() for ingredient in ingredients)]
+            matching_terms = []
+            non_unique_count = 0
+            unique_count = 0
+            search_terms = [s.replace('\r', '') for s in search_terms]
+            for ingredient in ingredients:
+                for term in search_terms:
+                    if term.lower() in ingredient.lower():
+                        matching_terms.append(term)
+                        print(matching_terms)
+                        non_unique_count += 1
+                        break
+                    if term.lower() in ingredient.lower() and term.lower() not in matching_terms:
+                        unique_count += 1
+                        break
 
-            if matching_count > 0:
-                return (recipe_name, ingredients, method)
-            else:
-                return None
+            if non_unique_count > unique_count:
+                unique_count * 2
+            count = unique_count + non_unique_count
+            print(count)
+
+                    
+
+
+            return recipe_name, ingredients, method, count  # Return count as well
+            
 
         def get_ingredients_with_search(self, search_terms):
             recipe_info = []
@@ -367,8 +380,7 @@ def search_ingredients():
                     if result.result() is not None:
                         recipe_info.append(result.result())
 
-            sorted_results = sorted(recipe_info, key=lambda x: x[1], reverse=True)
-            return sorted_results
+            return recipe_info
     
     global recipe_dict
     recipe_dict = {
@@ -379,6 +391,13 @@ def search_ingredients():
             }
 
     if form.validate_on_submit():
+        all_recipe_info = {
+            'recipe_name': [],
+            'ingredients': [],
+            'method': [],
+            'count': []
+        }
+
         category_list = ["lunch", "dessert", "beef", "savoury-pie", "storecupboard-comfort-food",
                          "sausage", "chicken"]
         for recipe_type in category_list:
@@ -386,25 +405,38 @@ def search_ingredients():
                 scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+recipe_type+"-recipes")
                 search_terms = form.ingredients.data.split('\n')
                 matching_ingredient_results = scraper.get_ingredients_with_search(search_terms)
-                
-                for recipe_name, ingredients, method in matching_ingredient_results:
-                    recipe_dict['title'].append(str(recipe_name))
-                    recipe_dict['ingredients'].append(ingredients)
-                    recipe_dict['content'].append(str(method))
 
-                    post = Post.query.filter(Post.title == recipe_name).first()
-                    if post:
-                        if post.display == False and current_user == post.author:
-                            recipe_dict['already_saved'].append(True)
-                    else:
-                        recipe_dict['already_saved'].append(False)
+                for recipe_name, ingredients, method, count in matching_ingredient_results:
+                    if recipe_name is not None:
+                        all_recipe_info['recipe_name'].append(str(recipe_name))
+                        all_recipe_info['ingredients'].append(ingredients)
+                        all_recipe_info['method'].append(str(method))
+                        all_recipe_info['count'].append(count)
+
             except:
                 print("Error: No recipes with that search term")
-    
+
+        sorted_results = sorted(
+        zip(all_recipe_info['recipe_name'], all_recipe_info['ingredients'],
+            all_recipe_info['method'], all_recipe_info['count']),
+        key=lambda x: x[3], reverse=True) 
+        print(sorted_results)
+        print(all_recipe_info['count'])
+
+        for recipe_name, ingredients, method, count in sorted_results:
+            recipe_dict['title'].append(str(recipe_name))
+            recipe_dict['ingredients'].append(ingredients)
+            recipe_dict['content'].append(str(method))
+
+            post = Post.query.filter(Post.title == recipe_name).first()
+            if post:
+                if post.display == False and current_user == post.author:
+                    recipe_dict['already_saved'].append(True)
+            else:
+                recipe_dict['already_saved'].append(False)
 
         return render_template('search_ingredients.html', form=form, posts=recipe_dict)
-    
-              
+
     return render_template('search_ingredients.html', form=form, posts=recipe_dict, searching=False)
 
 
