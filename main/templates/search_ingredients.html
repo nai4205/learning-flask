@@ -19,12 +19,11 @@
                         <option value="Pasta">Pasta</option>
                         <option value="Dessert">Dessert</option>
                     </select>
-            
                     <button type="submit" class="dropdownMenuButton1 mb-5">Search</button>
                 </div>
             </form> -->
             {%if posts%}
-                {% for i in range((posts|length)-1)%}
+                {% for i in range(posts['title']|length)%}
                     {%if posts['ingredients'][i]|length > 0%}
                     <article class="media content-section">
                         <div class="media-body"> 
@@ -79,6 +78,7 @@
         </fieldset>
     </form>
 </div>
+
 
 <script>
     const ingredientsContainer = document.querySelector('.ingredients-input');
@@ -200,10 +200,24 @@ function sendPostRequest(url) {
 
 
 
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const foodCategorySelect = document.getElementById("foodCategorySelect");
+        const selectedCategory = document.getElementById("selectedCategory");
+
+        foodCategorySelect.addEventListener("change", function () {
+            selectedCategory.textContent = this.options[this.selectedIndex].text;
+        });
+    });
+</script>
+
+{%endblock content%}
 
 
 
 
 
 
-{% endblock content %}
+
+
+
