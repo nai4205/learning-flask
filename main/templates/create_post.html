@@ -55,10 +55,21 @@
                 {% endif %}
                 
             </div>
-
+            {%if post%}
+            {%if post.display == True%}
             <div class="form-group pt-3">
                 <button type="button" class="btn btn-primary btn-success mt-1 mb-1" data-bs-toggle="modal" data-bs-target="#postModal">Post</button>                
             </div>
+            {%else%}
+            <div class="form-group pt-3">
+            <button type="submit" name="submit_type" value="private" class="btn btn-secondary btm-sm mt-1 mb-1">Update</button>
+            </div>
+            {%endif%}
+            {%else%}
+            <div class="form-group pt-3">
+                <button type="button" class="btn btn-primary btn-success mt-1 mb-1" data-bs-toggle="modal" data-bs-target="#postModal">Post</button>                
+            </div>
+            {%endif%}
             <div class="modal fade" id="postModal" tabindex="-1" role="dialog" aria-labelledby="postModalLabel" aria-hidden="true">
                 <div class="modal-dialog" role="document">
                   <div class="modal-content">

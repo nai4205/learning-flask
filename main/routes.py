@@ -2,13 +2,15 @@ import secrets
 import os
 from PIL import Image
 from flask import render_template, url_for, flash, redirect, request, abort, session, make_response
-from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm, SearchForm
+from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm, SearchForm, RequestResetForm, ResetPasswordForm
 from main.models import User, Post, SavePost
-from main import app, bcrypt, db
+from main import app, bcrypt, db, api_key
 import requests
 from bs4 import BeautifulSoup
 from flask_login import login_user, current_user, logout_user, login_required
 from sqlalchemy import func
+from flask_mail import Message
+
 
 @app.route("/")
 @app.route("/home")
@@ -27,7 +29,7 @@ def personal_home():
     saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
     posts = Post.query.filter_by(author=current_user).filter_by(display=True).order_by(Post.date_posted.desc()).paginate(per_page=5 , page=page)
     if posts:
-        return render_template('home.html', posts=posts, drop_title="Your recipes", saved_post_id=saved_post_id)
+        return render_template('personal_home.html', posts=posts, drop_title="Your recipes", saved_post_id=saved_post_id)
     else:
         flash("You haven't posted anything!", "danger")
         return redirect(url_for('home'))
@@ -235,6 +237,8 @@ def save_post(post_id):
     save_post = SavePost(user_id=current_user.id, post_id=post_id)
     if SavePost.query.filter_by(user_id=current_user.id, post_id=post_id).first():
         db.session.delete(SavePost.query.filter_by(user_id=current_user.id, post_id=post_id).first())
+        if post.display == False:
+            db.session.delete(post)
         db.session.commit() 
         return redirect(request.referrer)
     elif post.private == True and current_user != post.author:
@@ -245,59 +249,63 @@ def save_post(post_id):
         db.session.commit()
         return redirect(request.referrer)
     
-@app.route("/search_ingredients/save_post/<title>/<content>/<ingredients>")
+@app.route("/search_ingredients/save_post/<title>/<content>/<ingredients>", methods=['GET', 'POST'])
 @login_required
 def save_post_from_search(title, content, ingredients):
-
     ingredients_string = '\n'.join(ingredient.strip() for ingredient in str(ingredients).replace('[','').replace(']','').replace('\'','').split(','))
-
+    form=SearchForm()
 
     new_post = Post(title=title, content=content, ingredients=ingredients_string, author=current_user, display=False)
     db.session.add(new_post)    
     db.session.commit()
-
+    
     save_post = SavePost(user_id=current_user.id, post_id=new_post.id)
     db.session.add(save_post)
     db.session.commit()
 
-    
-    return make_response("", 204)
+    recipe_dict['already_saved'][recipe_dict['title'].index(title)] = True
+    return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
 
-@app.route("/search_ingredients/<string:food_category>", methods=['GET', 'POST'])
-def search_ingredients(food_category):
+@app.route("/search_ingredients/delete_post_from_search/<title>", methods=['GET', 'POST'])
+@login_required
+def delete_post_from_search(title):
+    form=SearchForm()
+    post = Post.query.filter_by(title=title).first()
+    save_post = SavePost.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+    if post.display == False and current_user == post.author and save_post:
+        db.session.delete(save_post)
+        db.session.delete(post)
+        db.session.commit()
+        
+    recipe_dict['already_saved'][recipe_dict['title'].index(title)] = False
+    return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
+
+@app.route("/search_ingredients", methods=['GET', 'POST'])
+def search_ingredients():
     form = SearchForm()
-    if not food_category:
-        food_category = "Lunch"
     class RecipeScraper:
         def __init__(self, url):
             self.url = url
             self.page = requests.get(self.url)
             self.soup = BeautifulSoup(self.page.content, "html.parser")
-            self.results = self.soup.find(class_="layout-md-rail__primary")  # List of all recipes
-            self.recipe_elements = self.results.find_all("div", class_="card__section card__content")  # Content of individual recipe (just preview)
+            self.results = self.soup.find(class_="layout-md-rail__primary")
+            self.recipe_elements = self.results.find_all("div", class_="card__section card__content")
 
         def get_recipe_links(self):
-            links_list = []
-            for recipe_element in self.recipe_elements:
-                links = recipe_element.find_all("a")
-                for link in links:
-                    link_url = link["href"]
-                    links_list.append(link_url)
+            links_list = [link["href"] for recipe_element in self.recipe_elements for link in recipe_element.find_all("a")]
             links_list.pop(0)
             return links_list
 
         def get_matching_ingredient_count(self, ingredients, search_terms):
-            count = 0
-            for term in search_terms:
-                for ingredient in ingredients:
-                    if term.lower() in ingredient.lower():
-                        count += 1
+            lower_ingredients = [ingredient.lower() for ingredient in ingredients]
+            lower_search_terms = [term.lower() for term in search_terms]
+            count = sum(term in ingredient for term in lower_search_terms for ingredient in lower_ingredients)
             return count
 
         def get_ingredients_with_search(self, search_terms):
-            recipe_info = []  # List to store recipe information tuples
+            recipe_info = []
+
             for link in self.get_recipe_links():
-                #GET INGREDIENTS
                 recipe_page = requests.get("https://www.bbcgoodfood.com" + link)
                 new_soup = BeautifulSoup(recipe_page.content, "html.parser")
                 recipe_name = new_soup.find("h1").text.strip()
@@ -306,7 +314,6 @@ def search_ingredients(food_category):
                 ingredients_list = ingredients_section.find_all("li")
                 ingredients = [ingredient.get_text() for ingredient in ingredients_list]
 
-                #GET METHOD
                 method_section = ingredients_and_recipe_section.find(class_="recipe__method-steps mb-lg col-12 col-lg-6")
                 method_list = method_section.find_all("li")
                 method = [method.get_text() for method in method_list]
@@ -317,33 +324,86 @@ def search_ingredients(food_category):
                 if matching_count > 0:
                     recipe_info.append((recipe_name, ingredients, method))
 
-            
-            sorted_results = sorted(recipe_info, key=lambda x: x[1], reverse=True) #Sorts the list by element 1 (matching_count) then reverses the order to get
-                                                                                #a descending list 
+            sorted_results = sorted(recipe_info, key=lambda x: x[1], reverse=True)
             return sorted_results
 
     if form.validate_on_submit():
         # Example usage
         try:
-            scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+food_category.lower()+"-recipes")
+            scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+"lunch".lower()+"-recipes")
         except:
             flash("Error: No recipes with that search term", "danger")
-            return redirect(url_for('search_ingredients', food_category=food_category))
+            return redirect(url_for('search_ingredients'))
         search_terms = form.ingredients.data.split('\n')
         matching_ingredient_results = scraper.get_ingredients_with_search(search_terms)
-
+        global recipe_dict
         recipe_dict = {
                 'title': [],
                 'content': [],
                 'ingredients': [],
-                'already_saved': False
+                'already_saved': []
             }
         for recipe_name, ingredients, method in matching_ingredient_results:
             recipe_dict['title'].append(recipe_name)
             recipe_dict['ingredients'].append(ingredients)
             recipe_dict['content'].append(method)
-            
 
+            post = Post.query.filter(Post.title == recipe_name).first()
+            if post:
+                if post.display == False and current_user == post.author:
+                    recipe_dict['already_saved'].append(True)
+            else:
+                recipe_dict['already_saved'].append(False)
+                
         
-        return render_template('search_ingredients.html', form=form, posts=recipe_dict, drop_title=food_category)
-    return render_template('search_ingredients.html', form=form, searching=False, drop_title=food_category)
+        return render_template('search_ingredients.html', form=form, posts=recipe_dict)
+    return render_template('search_ingredients.html', form=form, searching=False)
+
+
+def send_reset_email(user):
+    token = user.get_reset_token()
+    requests.post(
+		"https://api.mailgun.net/v3/sandboxf6184cbbc9604db58f5ee2ac78568fea/messages",
+		auth=("api", "ca076204e3a43096776bc428bb92d012-4b98b89f-0237474a"),
+		data={"from": "noreply@gmail.com",
+			"to": user.email,
+			"subject": "Password Reset Request",
+			"text": f'''To reset your password, visit the following link: {url_for('reset_token', token=token, _external=True)}
+
+If you did not make this request, please ignore this email.
+    '''})
+    
+
+@app.route("/reset_password", methods=['GET', 'POST'])
+def reset_request():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    form = RequestResetForm()
+    if form.validate_on_submit(): 
+        user = User.query.filter_by(email=form.email.data).first()
+        send_reset_email(user)
+        flash('Email sent', 'info')
+    return render_template('reset_request.html', title='Reset Password', form=form)
+
+@app.route("/reset_password/<token>", methods=['GET', 'POST'])
+def reset_token(token):
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    
+    user = User.verify_reset_token(token)
+    if user is None:
+        flash('That is an invalid or expired token', 'warning')
+        return redirect(url_for('reset_request'))
+    
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user.password = hashed_password
+        db.session.commit()
+        flash('Password successfully changed', 'success')
+        return redirect(url_for('login'))
+    
+    return render_template('reset_token.html', title='Reset Password', form=form)
+
+
+    
