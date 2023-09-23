@@ -253,7 +253,7 @@ def save_post(post_id):
 @login_required
 def save_post_from_search(title, content, ingredients):
     ingredients_string = '\n'.join(ingredient.strip() for ingredient in str(ingredients).replace('[','').replace(']','').replace('\'','').split(','))
-
+    form=SearchForm()
 
     new_post = Post(title=title, content=content, ingredients=ingredients_string, author=current_user, display=False)
     db.session.add(new_post)    
@@ -263,8 +263,22 @@ def save_post_from_search(title, content, ingredients):
     db.session.add(save_post)
     db.session.commit()
 
-    
-    return redirect(url_for('search_ingredients'))
+    recipe_dict['already_saved'][recipe_dict['title'].index(title)] = True
+    return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
+
+@app.route("/search_ingredients/delete_post_from_search/<title>", methods=['GET', 'POST'])
+@login_required
+def delete_post_from_search(title):
+    form=SearchForm()
+    post = Post.query.filter_by(title=title).first()
+    save_post = SavePost.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+    if post.display == False and current_user == post.author and save_post:
+        db.session.delete(save_post)
+        db.session.delete(post)
+        db.session.commit()
+        
+    recipe_dict['already_saved'][recipe_dict['title'].index(title)] = False
+    return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
 
 @app.route("/search_ingredients", methods=['GET', 'POST'])
 def search_ingredients():
@@ -274,31 +288,24 @@ def search_ingredients():
             self.url = url
             self.page = requests.get(self.url)
             self.soup = BeautifulSoup(self.page.content, "html.parser")
-            self.results = self.soup.find(class_="layout-md-rail__primary")  # List of all recipes
-            self.recipe_elements = self.results.find_all("div", class_="card__section card__content")  # Content of individual recipe (just preview)
+            self.results = self.soup.find(class_="layout-md-rail__primary")
+            self.recipe_elements = self.results.find_all("div", class_="card__section card__content")
 
         def get_recipe_links(self):
-            links_list = []
-            for recipe_element in self.recipe_elements:
-                links = recipe_element.find_all("a")
-                for link in links:
-                    link_url = link["href"]
-                    links_list.append(link_url)
+            links_list = [link["href"] for recipe_element in self.recipe_elements for link in recipe_element.find_all("a")]
             links_list.pop(0)
             return links_list
 
         def get_matching_ingredient_count(self, ingredients, search_terms):
-            count = 0
-            for term in search_terms:
-                for ingredient in ingredients:
-                    if term.lower() in ingredient.lower():
-                        count += 1
+            lower_ingredients = [ingredient.lower() for ingredient in ingredients]
+            lower_search_terms = [term.lower() for term in search_terms]
+            count = sum(term in ingredient for term in lower_search_terms for ingredient in lower_ingredients)
             return count
 
         def get_ingredients_with_search(self, search_terms):
-            recipe_info = []  # List to store recipe information tuples
+            recipe_info = []
+
             for link in self.get_recipe_links():
-                #GET INGREDIENTS
                 recipe_page = requests.get("https://www.bbcgoodfood.com" + link)
                 new_soup = BeautifulSoup(recipe_page.content, "html.parser")
                 recipe_name = new_soup.find("h1").text.strip()
@@ -307,7 +314,6 @@ def search_ingredients():
                 ingredients_list = ingredients_section.find_all("li")
                 ingredients = [ingredient.get_text() for ingredient in ingredients_list]
 
-                #GET METHOD
                 method_section = ingredients_and_recipe_section.find(class_="recipe__method-steps mb-lg col-12 col-lg-6")
                 method_list = method_section.find_all("li")
                 method = [method.get_text() for method in method_list]
@@ -318,9 +324,7 @@ def search_ingredients():
                 if matching_count > 0:
                     recipe_info.append((recipe_name, ingredients, method))
 
-            
-            sorted_results = sorted(recipe_info, key=lambda x: x[1], reverse=True) #Sorts the list by element 1 (matching_count) then reverses the order to get
-                                                                                #a descending list 
+            sorted_results = sorted(recipe_info, key=lambda x: x[1], reverse=True)
             return sorted_results
 
     if form.validate_on_submit():
@@ -332,7 +336,7 @@ def search_ingredients():
             return redirect(url_for('search_ingredients'))
         search_terms = form.ingredients.data.split('\n')
         matching_ingredient_results = scraper.get_ingredients_with_search(search_terms)
-
+        global recipe_dict
         recipe_dict = {
                 'title': [],
                 'content': [],
@@ -355,11 +359,12 @@ def search_ingredients():
         return render_template('search_ingredients.html', form=form, posts=recipe_dict)
     return render_template('search_ingredients.html', form=form, searching=False)
 
+
 def send_reset_email(user):
     token = user.get_reset_token()
     requests.post(
-		"https://api.mailgun.net/v3/sandboxc269e18fa0754823849aac86d667cab3.mailgun.org/messages",
-		auth=("api", api_key),
+		"https://api.mailgun.net/v3/sandboxf6184cbbc9604db58f5ee2ac78568fea/messages",
+		auth=("api", "ca076204e3a43096776bc428bb92d012-4b98b89f-0237474a"),
 		data={"from": "noreply@gmail.com",
 			"to": user.email,
 			"subject": "Password Reset Request",

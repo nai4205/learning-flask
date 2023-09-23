@@ -27,9 +27,9 @@
                         <div class="media-body"> 
                             <h2><p class="article-title title-text">{{ posts['title'][i] }}</a>
                             {%if posts['already_saved'][i] == False%}
-                            <a href="{{url_for('save_post_from_search',  title=posts['title'][i], content=''.join(posts['content'][i]).replace('[','').replace(']','').replace('\'','').replace('%25', '%'), ingredients=posts['ingredients'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                            <a href="{{url_for('save_post_from_search', title=posts['title'][i], content=''.join(posts['content'][i]).replace('[','').replace(']','').replace('\'','').replace('%25', '%'), ingredients=posts['ingredients'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
                             {%else%}
-                            <a href="" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                            <a href="{{url_for('delete_post_from_search', title=posts['title'][i])}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
                             {%endif%}
                             </h2>
                             <h3><p class="article-ingredients">Method:</p></h3>
