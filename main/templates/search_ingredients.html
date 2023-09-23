@@ -5,21 +5,24 @@
         {{ form.hidden_tag() }}
         <fieldset class="form-group">
             <legend class="border-bottom mb-4">Search ingredients</legend>
-            <!-- <div class="dropdown">
-                <button class="btn btn-secondary dropdown-toggle mb-2" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-                {{drop_title}}
-                </button>
-                
-                <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Lunch')}}">Lunch</a></li>
-                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Chicken')}}">Chicken</a></li>
-                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Beef')}}">Beef</a></li>
-                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Cheese')}}">Cheese</a></li>
-                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Pasta')}}">Pasta</a></li>
-                <li><a class="dropdown-item" href="{{url_for('search_ingredients', food_category='Dessert')}}">Dessert</a></li>
-
-                </ul>
-            </div> -->
+            <!-- <form method="POST" action="{{ url_for('search_ingredients') }}">
+                <div class="dropdown">
+                    <button class="btn btn-secondary dropdown-toggle mb-2" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
+                        <span id="selectedCategory">{{ drop_title }}</span>
+                    </button>
+            
+                    <select class="dropdown-menu" aria-labelledby="dropdownMenuButton1" name="food_category" id="foodCategorySelect">
+                        <option value="Lunch">Lunch</option>
+                        <option value="Chicken">Chicken</option>
+                        <option value="Beef">Beef</option>
+                        <option value="Cheese">Cheese</option>
+                        <option value="Pasta">Pasta</option>
+                        <option value="Dessert">Dessert</option>
+                    </select>
+            
+                    <button type="submit" class="dropdownMenuButton1 mb-5">Search</button>
+                </div>
+            </form> -->
             {%if posts%}
                 {% for i in range((posts|length)-1)%}
                     {%if posts['ingredients'][i]|length > 0%}
@@ -27,7 +30,7 @@
                         <div class="media-body"> 
                             <h2><p class="article-title title-text">{{ posts['title'][i] }}</a>
                             {%if posts['already_saved'][i] == False%}
-                            <a href="{{url_for('save_post_from_search', title=posts['title'][i], content=''.join(posts['content'][i]).replace('[','').replace(']','').replace('\'','').replace('%25', '%'), ingredients=posts['ingredients'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                            <a href="{{url_for('save_post_from_search', title=posts['title'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
                             {%else%}
                             <a href="{{url_for('delete_post_from_search', title=posts['title'][i])}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
                             {%endif%}
@@ -178,6 +181,20 @@ function sendPostRequest(url) {
         // Handle errors if the request fails
     });
 }
+</script>
+
+
+
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const foodCategorySelect = document.getElementById("foodCategorySelect");
+        const selectedCategory = document.getElementById("selectedCategory");
+
+        foodCategorySelect.addEventListener("change", function () {
+            selectedCategory.textContent = this.options[this.selectedIndex].text;
+        });
+    });
 </script>
 
 

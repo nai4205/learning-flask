@@ -4,6 +4,7 @@ from flask_mail import Mail
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
 from flask_login import LoginManager
+from urllib.parse import urlencode
 api_key = os.environ.get('API')
 
 
