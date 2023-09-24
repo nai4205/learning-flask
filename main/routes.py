@@ -350,16 +350,17 @@ def search_ingredients():
             for ingredient in ingredients:
                 for term in search_terms:
                     if term.lower() in ingredient.lower():
-                        matching_terms.append(term)
-                        print(matching_terms)
-                        non_unique_count += 1
-                        break
-                    if term.lower() in ingredient.lower() and term.lower() not in matching_terms:
-                        unique_count += 1
-                        break
+                        matching_terms.append(term.lower())
+                        if term.lower() in matching_terms[:-1]:
+                            non_unique_count += 1
+                        else:
+                            unique_count += 1
+                            break
+                    
 
             if non_unique_count > unique_count:
                 unique_count * 2
+            print("unique", unique_count, "non unique", non_unique_count)
             count = unique_count + non_unique_count
             print(count)
 
@@ -417,11 +418,11 @@ def search_ingredients():
                 print("Error: No recipes with that search term")
 
         sorted_results = sorted(
+        [(name, ing, meth, cnt) for name, ing, meth, cnt in
         zip(all_recipe_info['recipe_name'], all_recipe_info['ingredients'],
-            all_recipe_info['method'], all_recipe_info['count']),
-        key=lambda x: x[3], reverse=True) 
-        print(sorted_results)
-        print(all_recipe_info['count'])
+            all_recipe_info['method'], all_recipe_info['count']) if cnt > 0],
+        key=lambda x: (x[3], len(set(search_terms) & set(x[2].lower().split()))),
+        reverse=True)
 
         for recipe_name, ingredients, method, count in sorted_results:
             recipe_dict['title'].append(str(recipe_name))
