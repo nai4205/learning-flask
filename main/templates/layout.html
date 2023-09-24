@@ -27,15 +27,17 @@
     <script>
       const isLightMode = localStorage.getItem("lightMode") === "true";
       const body = document.body;
+      
     
       if (isLightMode) {
         body.classList.add("light-mode");
+
       }else{
         body.classList.remove("light-mode");
       }
     </script>
     <header class="site-header">
-        <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top">
+        <nav class="navbar navbar-expand-md navbar-dark bg-dark fixed-top" id="navigation-bar">
           <div class="container">
             <a class="navbar-brand mr-4" href="/">Recipe saver</a>
             <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarToggle" aria-controls="navbarToggle" aria-expanded="false" aria-label="Toggle navigation">
@@ -58,8 +60,8 @@
                   <a class="nav-item nav-link" href="{{url_for('login')}}">Login</a>
                   <a class="nav-item nav-link" href="{{url_for('register')}}">Register</a>
                 {% endif %}
-                <button id="style-switch" class="btn btn-secondary">Toggle Dark Mode</button>
-
+                <input type="checkbox" id="darkmode-toggle" >
+                <label id="dark-toggle" for="darkmode-toggle">
               
               </div>
               
@@ -173,25 +175,43 @@ function fetchPredictions(query) {
 // Function to toggle light mode
 function toggleLightMode() {
   const body = document.body;
-
-  body.classList.toggle("light-mode");
-
   const isLightMode = body.classList.contains("light-mode");
-  localStorage.setItem("lightMode", isLightMode);
+  const navBar = document.getElementById("navigation-bar");
+  
+  // Toggle the "light-mode" class on the body element
+  body.classList.toggle("light-mode", !isLightMode);
+  body.classList.remove("dark-mode");
+
+  // Update the checkbox state
+  const darkModeToggle = document.getElementById("darkmode-toggle");
+  darkModeToggle.checked = isLightMode;
+
+  // Save the user's preference in localStorage
+  localStorage.setItem("lightMode", !isLightMode);
 }
 
+// Function to initialize light mode based on user preference
 function initializeLightMode() {
   const isLightMode = localStorage.getItem("lightMode") === "true";
   const body = document.body;
 
   if (isLightMode) {
+    body.classList.remove("dark-mode");
     body.classList.add("light-mode");
+  };
+  if (!isLightMode) {
+    
+    body.classList.add("dark-mode");
+
   }
+
 }
 
-const styleSwitchButton = document.getElementById("style-switch");
-styleSwitchButton.addEventListener("click", toggleLightMode);
+// Attach the toggleLightMode function to the checkbox change event
+const darkModeToggle = document.getElementById("darkmode-toggle");
+darkModeToggle.addEventListener("change", toggleLightMode);
 
+// Initialize light mode based on user preference when the page loads
 window.addEventListener("load", initializeLightMode);
 
 

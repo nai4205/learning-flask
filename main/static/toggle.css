@@ -9,7 +9,7 @@
   }
   
   .light-mode .site-header .navbar-nav .nav-link {
-    color: #333;
+    color: #c3c1c1;
   }
   
   .light-mode .site-header .navbar-nav .nav-link:hover {
@@ -195,6 +195,7 @@
   .light-mode #suggestion-item:hover {
     background-color: #f5f5f5;
   }
+  
   
   
 
@@ -473,5 +474,63 @@ body {
     background-color: #555;
   }
   
+#dark-toggle{
+    margin: 10px;
+    width:50px;
+    height:20px;
+    position: relative;
+    display: block;
+    background: #ebebeb;
+    border-radius: 20px;
+    box-shadow: inset 0px 5px 15px rgba(0,0,0,0.4), inset 0px -5px 15px rgba(255,255,255,0.4);
+    cursor: pointer;
+  }
 
+  #dark-toggle:after {
+    content: "";
+    width:18px;
+    height: 18px;
+    position: absolute;
+    top:1px;
+    left:1px;
+    background: linear-gradient(180deg,#ffcc89,#d8860b);
+    border-radius: 18px;
+    box-shadow: 0px 5px 10px rgba(0,0,0,0.2);
+  }
+  
+  #darkmode-toggle {
+    width: 0;
+    height: 0;
+    visibility: hidden;
+  }
 
+  input:checked + #dark-toggle {
+    background: #242424;
+  }
+  input:checked + #dark-toggle:after {
+    left:49px;
+    transform: translateX(-100%);
+    background: linear-gradient(180deg,#777,#3a3a3a);
+  }
+  #dark-toggle, #dark-toggle:after {
+    transition: 0.3s
+  }
+  #dark-toggle:active:after{ 
+    width: 26px; 
+  }
+  
+  /* Add a class for dark mode */
+.dark-mode #dark-toggle {
+    background: #242424;
+  }
+  
+  .dark-mode #dark-toggle:after {
+    left: 49px;
+    transform: translateX(-100%);
+    background: linear-gradient(180deg, #777, #3a3a3a);
+  }
+  
+
+  
+
+  
