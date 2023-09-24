@@ -352,14 +352,14 @@ def search_ingredients():
                     if term.lower() in ingredient.lower():
                         matching_terms.append(term.lower())
                         if term.lower() in matching_terms[:-1]:
-                            non_unique_count += 1
+                            non_unique_count += 1                        
                         else:
                             unique_count += 1
                             break
                     
 
             if non_unique_count > unique_count:
-                unique_count * 2
+                unique_count * 5
             print("unique", unique_count, "non unique", non_unique_count)
             count = unique_count + non_unique_count
             print(count)
@@ -400,7 +400,7 @@ def search_ingredients():
         }
 
         category_list = ["lunch", "dessert", "beef", "savoury-pie", "storecupboard-comfort-food",
-                         "sausage", "chicken"]
+                         "sausage", "chicken", "autumn-vegetarian", "gravy"]
         for recipe_type in category_list:
             try:
                 scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+recipe_type+"-recipes")
