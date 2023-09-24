@@ -30,9 +30,9 @@
                         <div class="media-body"> 
                             <h2><p class="article-title title-text">{{ posts['title'][i] }}</a>
                             {%if posts['already_saved'][i] == False%}
-                            <a href="{{url_for('save_post_from_search', title=posts['title'][i], recipe_dict=posts)}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                            <a href="{{url_for('save_post_from_search', title=posts['title'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
                             {%else%}
-                            <a href="{{url_for('delete_post_from_search', title=posts['title'][i], recipe_dict=posts)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                            <a href="{{url_for('delete_post_from_search', title=posts['title'][i])}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
                             {%endif%}
                             </h2>
                             <h3><p class="article-ingredients">Method:</p></h3>
@@ -180,6 +180,20 @@
     });
 </script>
 
+<script>
+    window.addEventListener("scroll", () => {
+    const scrollY = window.scrollY;
+    console.log(scrollY)
+    localStorage.setItem("scrollPositionSearch", scrollY);
+});
+    window.addEventListener("load", () => {
+    const scrollY = localStorage.getItem("scrollPositionSearch");
+    if (scrollY !== null) {
+        window.scrollTo(0, parseInt(scrollY, 10));
+    }
+});
+
+</script>
 
 
 {%endblock content%}

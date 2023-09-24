@@ -71,4 +71,19 @@
         {%endif%}
     {%endfor%}
 
+
+    <script>
+        window.addEventListener("scroll", () => {
+        const scrollY = window.scrollY;
+        localStorage.setItem("scrollPositionHome", scrollY);
+    });
+        window.addEventListener("load", () => {
+        const scrollY = localStorage.getItem("scrollPositionHome");
+        if (scrollY !== null) {
+            window.scrollTo(0, parseInt(scrollY, 10));
+        }
+    });
+    
+    </script>
 {% endblock content %}
+

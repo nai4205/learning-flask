@@ -58,7 +58,7 @@ def user_posts(username):
     page = request.args.get('page', 1, type=int)
     saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
     user = User.query.filter_by(username=username).first_or_404()
-    posts = Post.query.filter_by(author=user).order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
+    posts = Post.query.filter_by(author=user, display=True).order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
     return render_template('user_posts.html', posts=posts, user=user, searching=True, saved_post_id=saved_post_id)
 
 @app.route("/about")
@@ -359,9 +359,10 @@ async def fetch_recipe_data(session, recipe_url, search_terms):
                     if term.lower() in matching_terms[:-1]:
                         non_unique_count += 1
                     else:
-                        unique_count += 1
+                        unique_count += 2
+                
         print(unique_count, non_unique_count)
-
+        print("total", unique_count + non_unique_count)
 
         
         return recipe_name, ingredients, method, unique_count + non_unique_count
@@ -407,7 +408,6 @@ def search_ingredients():
             flash("No results found", "danger")
             return render_template('search_ingredients.html', form=form, posts=recipe_dict, searching=False)
 
-        print(recipe_info)
         # Create a list of tuples with all information
         recipe_tuples = [(name, ing, meth, cnt) for name, ing, meth, cnt in recipe_info if cnt > 0]
 

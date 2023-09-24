@@ -33,5 +33,18 @@
             </div>
         </article>
     {% endfor %}
+    <script>
+        window.addEventListener("scroll", () => {
+        const scrollY = window.scrollY;
+        console.log(scrollY)
+        localStorage.setItem("scrollPositionSaved", scrollY);
+    });
+        window.addEventListener("load", () => {
+        const scrollY = localStorage.getItem("scrollPositionSaved");
+        if (scrollY !== null) {
+            window.scrollTo(0, parseInt(scrollY, 10));
+        }
+    });
     
+    </script>
 {% endblock content %}

@@ -70,8 +70,12 @@
               
             </div>
           </div>
+          <div class="input-group-append mx-2">
+            <button class="btn btn-secondary" id="return-to-top">Back to top</button>
+          </div>
           <form class="form-inline my-2 my-lg-0" action="{{ url_for('handle_search') }}">
             <div class="input-group">
+              
               <input autocomplete="off" class="form-control" name="search" type="search" placeholder="Search" id="search-input" aria-label="Search">
               <div class="input-group-append mx-2">
                 <button class="btn btn-secondary" type="submit">Search</button>
@@ -96,7 +100,10 @@
                 {% endfor %}
               {% endif %}
             {% endwith %}
-            {% block content %}{% endblock %}
+            {% block content %}
+            <script>
+             </script>
+            {% endblock %}
           </div>
           <!-- <div class="col-md-4">
             <div class="content-section">
@@ -130,6 +137,27 @@
 <script>
 const searchInput = document.getElementById("search-input");
 
+let returnToTop = document.getElementById("return-to-top");
+
+// When the user scrolls down 20px from the top of the document, show the button
+window.onscroll = function() {scrollFunction()};
+
+function scrollFunction() {
+  if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+    returnToTop.style.display = "block";
+  } else {
+    returnToTop.style.display = "none";
+  }
+}
+
+returnToTop.addEventListener("click", ()=>{
+  document.body.scrollTop = 0; // For Safari
+  document.documentElement.scrollTop = 0; // For Chrome, Firefox, IE and Opera
+});
+ 
+
+
+
 searchInput.addEventListener("input", () => {
   const query = searchInput.value;
   if (query.length >= 1) {
@@ -155,6 +183,7 @@ document.body.addEventListener("click", (event) => {
     suggestionsContainer.innerHTML = ""; 
   }
 });
+
 
 function fetchPredictions(query) {
   fetch(`/search_predictions?query=${query}`)
@@ -216,6 +245,7 @@ darkModeToggle.addEventListener("change", toggleLightMode);
 
 // Initialize light mode based on user preference when the page loads
 window.addEventListener("load", initializeLightMode);
+
 
 
 </script>
