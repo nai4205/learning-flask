@@ -31,9 +31,12 @@
     
       if (isLightMode) {
         body.classList.add("light-mode");
+        body.classList.remove("dark-mode");
 
       }else{
         body.classList.remove("light-mode");
+        body.classList.add("dark-mode");
+
       }
     </script>
     <header class="site-header">

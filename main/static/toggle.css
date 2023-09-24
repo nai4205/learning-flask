@@ -1,6 +1,6 @@
 
 .light-mode {
-    background: #f0f0f0;
+    background: #d5d5d5;
     color: #333;
   }
   
@@ -49,10 +49,12 @@
     color: #333;
     border: 1px solid #ccc;
     box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.5s;
+
   }
   
   .light-mode .content-section:hover {
-    background-color: #f5f5f5; /* Slightly darker color on hover */
+    background-color: #e1dede; /* Slightly darker color on hover */
   }
   
   .light-mode .article-title {
