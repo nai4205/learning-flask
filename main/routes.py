@@ -12,6 +12,10 @@ from sqlalchemy import func
 from flask_mail import Message
 import concurrent.futures
 from flask_paginate import Pagination, get_page_args
+from flask_caching import Cache
+import asyncio
+import aiohttp
+from concurrent.futures import ThreadPoolExecutor
 
 
 
@@ -289,13 +293,14 @@ def save_post_from_search(title):
     new_post = Post(title=title, content=content, ingredients=ingredients_string, author=current_user, display=False)
     db.session.add(new_post)    
     db.session.commit()
-    
     save_post = SavePost(user_id=current_user.id, post_id=new_post.id)
     db.session.add(save_post)
     db.session.commit()
 
     recipe_dict['already_saved'][recipe_dict['title'].index(title)] = True
     return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
+
+
 
 @app.route("/search_ingredients/delete/<title>", methods=['GET', 'POST'])
 @login_required
@@ -313,119 +318,113 @@ def delete_post_from_search(title):
         recipe_dict['already_saved'][recipe_dict['title'].index(title)] = False
     return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
 
-@app.route("/search_ingredients", methods=['GET', 'POST'])
-def search_ingredients():
-    form = SearchForm()
-    class RecipeScraper:
-        def __init__(self, url):
-            self.url = url
-            self.page = requests.get(self.url)
-            self.soup = BeautifulSoup(self.page.content, "html.parser")
-            self.results = self.soup.find(class_="layout-md-rail__primary")
-            self.recipe_elements = self.results.find_all("div", class_="card__section card__content")
 
-        def get_recipe_links(self):
-            links_list = [link["href"] for recipe_element in self.recipe_elements for link in recipe_element.find_all("a")]
-            links_list.pop(0)
-            return links_list
+async def scrape_recipe(session, link, search_terms):
+    async with session.get(link) as response:
+        html = await response.text()
+        soup = BeautifulSoup(html, "html.parser")
+        results = soup.find(class_="layout-md-rail__primary")
+        recipe_elements = results.find_all("div", class_="card__section card__content")
+        links_list = [link["href"] for recipe_element in recipe_elements for link in recipe_element.find_all("a")]
+        links_list.pop(0)
 
+        # Use asyncio.gather to fetch recipe pages concurrently
+        tasks = [fetch_recipe_data(session, "https://www.bbcgoodfood.com" + link, search_terms) for link in links_list]
+        recipe_data_list = await asyncio.gather(*tasks)
 
-        def scrape_recipe(self, link, search_terms):
-            recipe_page = requests.get("https://www.bbcgoodfood.com" + link)
-            new_soup = BeautifulSoup(recipe_page.content, "html.parser")
-            recipe_name = new_soup.find("h1").text.strip()
-            ingredients_and_recipe_section = new_soup.find("div", class_="row recipe__instructions")
-            ingredients_section = ingredients_and_recipe_section.find(class_="recipe__ingredients col-12 mt-md col-lg-6")
-            ingredients_list = ingredients_section.find_all("li")
-            ingredients = [ingredient.get_text() for ingredient in ingredients_list]
+        return recipe_data_list
 
-            method_section = ingredients_and_recipe_section.find(class_="recipe__method-steps mb-lg col-12 col-lg-6")
-            method_list = method_section.find_all("li")
-            method = [method.get_text() for method in method_list]
+async def fetch_recipe_data(session, recipe_url, search_terms):
+    async with session.get(recipe_url) as response:
+        html = await response.text()
+        soup = BeautifulSoup(html, "html.parser")
+        recipe_name = soup.find("h1").text.strip()
+        ingredients_and_recipe_section = soup.find("div", class_="row recipe__instructions")
+        ingredients_section = ingredients_and_recipe_section.find(class_="recipe__ingredients col-12 mt-md col-lg-6")
+        ingredients_list = ingredients_section.find_all("li")
+        ingredients = [ingredient.get_text() for ingredient in ingredients_list]
 
-            matching_terms = []
-            non_unique_count = 0
-            unique_count = 0
-            search_terms = [s.replace('\r', '') for s in search_terms]
-            for ingredient in ingredients:
-                for term in search_terms:
-                    if term.lower()  in ingredient.lower():
-                        matching_terms.append(term.lower())
-                        if term.lower() in matching_terms[:-1]:
-                            non_unique_count += 1                        
-                        else:
-                            unique_count += 1
-                            break
-                    
+        method_section = ingredients_and_recipe_section.find(class_="recipe__method-steps mb-lg col-12 col-lg-6")
+        method_list = method_section.find_all("li")
+        method = [method.get_text() for method in method_list]
 
-            if non_unique_count > unique_count:
-                unique_count * 5
-            print("unique", unique_count, "non unique", non_unique_count)
-            count = unique_count + non_unique_count
-            print(count)
-
-                    
+        matching_terms = []
+        non_unique_count = 0
+        unique_count = 0
+        search_terms = [s.replace('\r', '') for s in search_terms]
+        for ingredient in ingredients:
+            for term in search_terms:
+                if term.lower() in ingredient.lower():
+                    matching_terms.append(term.lower())
+                    if term.lower() in matching_terms[:-1]:
+                        non_unique_count += 1
+                    else:
+                        unique_count += 1
+        print(unique_count, non_unique_count)
 
 
-            return recipe_name, ingredients, method, count  # Return count as well
-            
+        
+        return recipe_name, ingredients, method, unique_count + non_unique_count
 
-        def get_ingredients_with_search(self, search_terms):
-            recipe_info = []
-            links = self.get_recipe_links()
 
-            with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-                results = [executor.submit(self.scrape_recipe, link, search_terms) for link in links]
 
-                for result in concurrent.futures.as_completed(results):
-                    if result.result() is not None:
-                        recipe_info.append(result.result())
 
-            return recipe_info
-    
-    global recipe_dict
-    recipe_dict = {
-                'title': [],
-                'content': [],
-                'ingredients': [],
-                'already_saved': []
-            }
-
-    if form.validate_on_submit():
-        all_recipe_info = {
-            'recipe_name': [],
-            'ingredients': [],
-            'method': [],
-            'count': []
-        }
-
+async def get_ingredients_with_search(search_terms):
+    recipe_info = []
+    async with aiohttp.ClientSession() as session:
         category_list = ["lunch", "dessert", "beef", "savoury-pie", "storecupboard-comfort-food",
                          "sausage", "chicken", "autumn-vegetarian", "gravy"]
+        
+        tasks = []
         for recipe_type in category_list:
-            try:
-                scraper = RecipeScraper("https://www.bbcgoodfood.com/recipes/collection/"+recipe_type+"-recipes")
-                search_terms = form.ingredients.data.split('\n')
-                matching_ingredient_results = scraper.get_ingredients_with_search(search_terms)
+            tasks.append(scrape_recipe(session, "https://www.bbcgoodfood.com/recipes/collection/"+recipe_type.lower()+"-recipes", search_terms))
+        
+        results = await asyncio.gather(*tasks)
+        for matching_ingredient_results in results:
+            recipe_info.extend(matching_ingredient_results)
+    
+    return recipe_info
 
-                for recipe_name, ingredients, method, count in matching_ingredient_results:
-                    if recipe_name is not None:
-                        all_recipe_info['recipe_name'].append(str(recipe_name))
-                        all_recipe_info['ingredients'].append(ingredients)
-                        all_recipe_info['method'].append(str(method))
-                        all_recipe_info['count'].append(count)
+@app.route("/search_ingredients", methods=['GET', 'POST'])
+def search_ingredients():
+    global recipe_dict
+    recipe_dict = {}
+    form = SearchForm()
 
-            except:
-                print("Error: No recipes with that search term")
+    if form.validate_on_submit():
+        search_terms = form.ingredients.data.split('\n')
+        recipe_info = asyncio.run(get_ingredients_with_search(search_terms))
 
-        sorted_results = sorted(
-        [(name, ing, meth, cnt) for name, ing, meth, cnt in
-        zip(all_recipe_info['recipe_name'], all_recipe_info['ingredients'],
-            all_recipe_info['method'], all_recipe_info['count']) if cnt > 0],
-        key=lambda x: (x[3], len(set(search_terms) & set(x[2].lower().split()))),
-        reverse=True)
-        if sorted_results == []:
+        recipe_dict = {
+            'title': [],
+            'content': [],
+            'ingredients': [],
+            'already_saved': []
+        }
+        
+
+        if not recipe_info:
             flash("No results found", "danger")
             return render_template('search_ingredients.html', form=form, posts=recipe_dict, searching=False)
+
+        print(recipe_info)
+        # Create a list of tuples with all information
+        recipe_tuples = [(name, ing, meth, cnt) for name, ing, meth, cnt in recipe_info if cnt > 0]
+
+        # Sort the list based on the desired criteria
+        sorted_results = sorted(
+            recipe_tuples,
+            key=lambda x: (x[3], len(set(search_terms) & set(' '.join(x[2]).lower().split())), str(x[0])),
+            reverse=True
+        )
+
+        # Initialize recipe_dict
+        recipe_dict = {
+            'title': [],
+            'content': [],
+            'ingredients': [],
+            'already_saved': []
+        }
 
         for recipe_name, ingredients, method, count in sorted_results:
             recipe_dict['title'].append(str(recipe_name))
@@ -433,15 +432,16 @@ def search_ingredients():
             recipe_dict['content'].append(str(method))
 
             post = Post.query.filter(Post.title == recipe_name).first()
-            if post:
-                if post.display == False and current_user == post.author:
-                    recipe_dict['already_saved'].append(True)
+            if post and not post.display and current_user == post.author:
+                recipe_dict['already_saved'].append(True)
             else:
                 recipe_dict['already_saved'].append(False)
 
         return render_template('search_ingredients.html', form=form, posts=recipe_dict)
 
+
     return render_template('search_ingredients.html', form=form, posts=recipe_dict, searching=False)
+
 
 
 def send_reset_email(user):
