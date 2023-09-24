@@ -276,7 +276,7 @@ def save_post(post_id):
         db.session.commit()
         return redirect(request.referrer)
     
-@app.route("/search_ingredients/save_post/<title>", methods=['GET', 'POST'])
+@app.route("/search_ingredients/<title>", methods=['GET', 'POST'])
 @login_required
 def save_post_from_search(title):
     recipe = recipe_dict['title'].index(title)    
@@ -297,7 +297,7 @@ def save_post_from_search(title):
     recipe_dict['already_saved'][recipe_dict['title'].index(title)] = True
     return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
 
-@app.route("/search_ingredients/delete_post_from_search/<title>", methods=['GET', 'POST'])
+@app.route("/search_ingredients/delete/<title>", methods=['GET', 'POST'])
 @login_required
 def delete_post_from_search(title):
     form=SearchForm()
@@ -349,7 +349,7 @@ def search_ingredients():
             search_terms = [s.replace('\r', '') for s in search_terms]
             for ingredient in ingredients:
                 for term in search_terms:
-                    if term.lower() in ingredient.lower():
+                    if term.lower()  in ingredient.lower():
                         matching_terms.append(term.lower())
                         if term.lower() in matching_terms[:-1]:
                             non_unique_count += 1                        
