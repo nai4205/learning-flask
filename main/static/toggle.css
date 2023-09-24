@@ -1,0 +1,477 @@
+
+.light-mode {
+    background: #f0f0f0;
+    color: #333;
+  }
+  
+  .light-mode .site-header {
+    background-color: #f0f0f0;
+  }
+  
+  .light-mode .site-header .navbar-nav .nav-link {
+    color: #333;
+  }
+  
+  .light-mode .site-header .navbar-nav .nav-link:hover {
+    color: #428bca;
+  }
+  
+  .light-mode .site-header .navbar-nav .nav-link.active {
+    font-weight: 500;
+  }
+  
+  /* Dropdown Styles */
+  .light-mode .dropdown-toggle {
+    background-color: #fff;
+    color: #333;
+    border: none;
+  }
+  
+  .light-mode .dropdown-toggle:hover {
+    background-color: #eee;
+  }
+  
+  .light-mode .dropdown-menu {
+    background-color: #fff;
+  }
+  
+  .light-mode .dropdown-item {
+    color: #333;
+  }
+  
+  .light-mode .dropdown-item:hover {
+    background-color: #eee;
+  }
+  
+  /* Content Section Styles */
+  .light-mode .content-section {
+    background: #fff;
+    color: #333;
+    border: 1px solid #ccc;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+  }
+  
+  .light-mode .content-section:hover {
+    background-color: #f5f5f5; /* Slightly darker color on hover */
+  }
+  
+  .light-mode .article-title {
+    color: #333;
+  }
+  
+  .light-mode .article-title:hover {
+    color: #428bca;
+    text-decoration: none;
+  }
+  
+  .light-mode .article-content {
+    color: #666;
+  }
+  
+  .light-mode .article-img {
+    border-radius: 50%;
+  }
+  
+  .light-mode .article-metadata {
+    border-bottom: 1px solid #ccc;
+  }
+  
+  .light-mode .article-metadata a:hover {
+    color: #428bca;
+    text-decoration: none;
+  }
+  
+  /* Bookmark Symbols */
+  .light-mode .bookmark-symbol,
+  .light-mode .bookmark-symbol-fill {
+    color: green;
+  }
+  
+  /* Pagination Styles */
+  .light-mode .btn-pagination {
+    background-color: #428bca;
+    color: #fff;
+  }
+  
+  .light-mode .btn-pagination:hover {
+    background-color: #357ebd;
+  }
+  
+  /* Suggestions Styles */
+  .light-mode #suggestions-container {
+    background-color: #fff;
+    border: 1px solid #ccc;
+  }
+  
+  .light-mode #suggestion-item {
+    transition: background-color 0.2s;
+  }
+  
+  .light-mode #suggestion-item:hover {
+    background-color: #eee;
+  }
+  
+  /* Grid Container Element Styles */
+  .light-mode .grid-container-element {
+    display: grid;
+    grid-template-columns: 1fr 3.5fr;
+    width: 50%;
+  }
+  
+  /* Loading Styles */
+  .light-mode .loading {
+    margin-top: 12px;
+    margin-right: 80px;
+  }
+  
+  /* Modal Styles */
+  .light-mode .modal {
+    background: rgba(0, 0, 0, 0.5); /* Semi-transparent dark background */
+  }
+  
+  .light-mode .modal-content {
+    background: #fff; /* Light background color for the modal content */
+    color: #333;
+  }
+  
+  .light-mode .modal-header {
+    background: #eee; /* Lighter background for the header */
+  }
+  
+  .light-mode .modal-title {
+    color: #333;
+  }
+  
+  .light-mode .modal-body {
+    border-bottom: 1px solid #ccc; /* Divider line at the bottom of the body */
+  }
+  
+  .light-mode .modal-footer {
+    background: #eee; /* Lighter background for the footer */
+  }
+  
+  /* Button Styles */
+  .light-mode .btn-secondary {
+    background-color: #428bca;
+    color: #fff;
+  }
+  
+  .light-mode .btn-secondary:hover {
+    background-color: #357ebd;
+  }
+  
+  /* Sidebar Styles */
+  .light-mode .content-section {
+    background-color: #f5f5f5; /* Lighter color for the sidebar */
+    color: #333;
+  }
+  
+  .light-mode .content-section h3 {
+    color: #333; /* Heading color in the sidebar */
+  }
+  
+  .light-mode .list-group-item {
+    background-color: #eee; /* Lighter color for list items */
+  }
+  
+  /* Alerts Styles */
+  .light-mode .alert {
+    background-color: #428bca; /* Alert background color */
+    color: #fff; /* Alert text color */
+  }
+  
+  /* Search Input Styles */
+  .light-mode #search-input {
+    background-color: #eee; /* Lighter color for the search input */
+    color: #333;
+  }
+  
+  /* Suggestions Styles */
+  .light-mode #suggestions-container {
+    background-color: #eee; /* Lighter color for the suggestions container */
+    border: 1px solid #ccc;
+  }
+  
+  .light-mode #suggestion-item:hover {
+    background-color: #f5f5f5;
+  }
+  
+  
+
+/* General Styles */
+body {
+    background: #1a1a1a;
+    color: #f0f0f0;
+    margin-top: 5rem;
+    font-family: Arial, sans-serif;
+  }
+  
+  .site-header {
+    background-color: #6b6464;
+  }
+  
+  .site-header .navbar-nav .nav-link {
+    color: #bbb;
+  }
+  
+  .site-header .navbar-nav .nav-link:hover {
+    color: #f0f0f0;
+  }
+  
+  .site-header .navbar-nav .nav-link.active {
+    font-weight: 500;
+  }
+  
+  /* Dropdown Styles */
+  .dropdown-toggle {
+    background-color: #333;
+    color: #f0f0f0;
+    border: none;
+  }
+  
+  .dropdown-toggle:hover {
+    background-color: #444;
+  }
+  
+  .dropdown-menu {
+    background-color: #333;
+  }
+  
+  .dropdown-item {
+    color: #f0f0f0;
+  }
+  
+  .dropdown-item:hover {
+    background-color: #444;
+  }
+  
+  /* Content Section Styles */
+  .content-section {
+    background: #333;
+    padding: 20px;
+    border: 1px solid #555;
+    border-radius: 3px;
+    margin-bottom: 20px;
+    box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+    transition: background-color 0.5s;
+  }
+
+  
+  .content-section:hover {
+    background-color: #2c2c2c; /* Slightly darker color on hover */
+  }
+  
+  .article-title {
+    color: #f0f0f0;
+  }
+  
+  .article-title:hover {
+    color: #428bca;
+    text-decoration: none;
+  }
+  
+  .article-content {
+    white-space: pre-line;
+    word-wrap: break-word;
+    color: #bbb;
+  }
+  
+  .article-img {
+    height: 65px;
+    width: 65px;
+    margin-right: 16px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+  
+  .article-metadata {
+    padding-bottom: 1px;
+    margin-bottom: 4px;
+    border-bottom: 1px solid #555;
+  }
+  
+  .article-metadata a:hover {
+    color: #f0f0f0;
+    text-decoration: none;
+  }
+  
+  .material-symbols-rounded {
+    font-variation-settings:
+    'FILL' 1,
+    'wght' 300,
+    'GRAD' 200,
+    'opsz' 48
+    
+    }
+    
+    .material-symbols-outlined {
+    font-variation-settings:
+    'FILL' 0,
+    'wght' 400,
+    'GRAD' 0,
+    'opsz' 24
+    }
+    
+    .bookmark-symbol{
+    text-decoration: none;
+    color: green;
+    }
+    
+    .bookmark-symbol-fill{
+    text-decoration: none;
+    color: green;
+    }
+  
+  .bookmark-symbol-fill {
+    color: green;
+  }
+  
+  /* Pagination Styles */
+  .btn-pagination {
+    margin: 0 5px;
+    background-color: #428bca;
+    color: #fff;
+    border: none;
+    border-radius: 3px;
+  }
+  
+  .btn-pagination:hover {
+    background-color: #357ebd;
+  }
+  
+  /* Suggestions Styles */
+  #suggestions-container {
+    position: absolute;
+    background-color: #333;
+    border: 1px solid #555;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+  }
+  
+  #suggestion-item {
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  #suggestion-item:hover {
+    background-color: #444;
+  }
+  
+  /* Grid Container Element Styles */
+  .grid-container-element {
+    display: grid;
+    grid-template-columns: 1fr 3.5fr;
+    width: 50%;
+  }
+  
+  /* Loading Styles */
+  .loading {
+    float: left;
+    margin-top: 12px;
+    margin-right: 80px;
+  }
+  
+  /* Modal Styles */
+  .modal {
+    background: rgba(0, 0, 0, 0.5); /* Semi-transparent dark background */
+  }
+  
+  .modal-content {
+    background: #333; /* Dark background color for the modal content */
+    color: #f0f0f0;
+  }
+  
+  .modal-header {
+    background: #444; /* Darker background for the header */
+    border-bottom: none; /* Remove default border */
+  }
+  
+  .modal-title {
+    color: #f0f0f0;
+  }
+  
+  .modal-body {
+    border-bottom: 1px solid #555; /* Divider line at the bottom of the body */
+  }
+  
+  .modal-footer {
+    background: #444; /* Darker background for the footer */
+    border-top: none; /* Remove default border */
+  }
+  
+  /* Button Styles */
+  .btn-secondary {
+    background-color: #428bca;
+    color: #fff;
+    border: none;
+  }
+  
+  .btn-secondary:hover {
+    background-color: #357ebd;
+  }
+  
+  .btm-sm {
+    margin-top: 8px;
+  }
+  
+  .mt-1 {
+    margin-top: 8px;
+  }
+  
+  .mb-1 {
+    margin-bottom: 8px;
+  }
+  
+  
+  /* Sidebar Styles */
+  .content-section {
+    background-color: #444; /* Darker color for the sidebar */
+    border-radius: 3px;
+    padding: 20px;
+    color: #bbb;
+  }
+  
+  .content-section h3 {
+    color: #f0f0f0; /* Heading color in the sidebar */
+  }
+  
+  .list-group-item {
+    background-color: #555; /* Darker color for list items */
+  }
+  
+  /* Alerts Styles */
+  .alert {
+    background-color: #428bca; /* Alert background color */
+    color: #fff; /* Alert text color */
+  }
+  
+  /* Search Input Styles */
+  #search-input {
+    background-color: #444; /* Darker color for the search input */
+    color: #f0f0f0;
+    border: none;
+  }
+  
+  /* Suggestions Styles */
+  #suggestions-container {
+    background-color: #444; /* Darker color for the suggestions container */
+    border: 1px solid #555;
+    max-height: 150px;
+    overflow-y: auto;
+    z-index: 1000;
+  }
+  
+  #suggestion-item {
+    padding: 10px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  
+  #suggestion-item:hover {
+    background-color: #555;
+  }
+  
+
+

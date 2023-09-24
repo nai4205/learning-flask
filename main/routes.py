@@ -423,6 +423,9 @@ def search_ingredients():
             all_recipe_info['method'], all_recipe_info['count']) if cnt > 0],
         key=lambda x: (x[3], len(set(search_terms) & set(x[2].lower().split()))),
         reverse=True)
+        if sorted_results == []:
+            flash("No results found", "danger")
+            return render_template('search_ingredients.html', form=form, posts=recipe_dict, searching=False)
 
         for recipe_name, ingredients, method, count in sorted_results:
             recipe_dict['title'].append(str(recipe_name))
