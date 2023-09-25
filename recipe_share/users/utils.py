@@ -3,17 +3,18 @@ import secrets
 from PIL import Image
 from flask import url_for
 from flask_mail import Message
-from recipe_share import app, mail
+from recipe_share import mail
+from flask import current_app 
 import requests
 from flask_login import current_user
 
 def save_picture(form_picture):
     if current_user.image_file != 'default.jpg':
-        os.remove(os.path.join(app.root_path, 'static/profile_pics', current_user.image_file))
+        os.remove(os.path.join(current_app.root_path, 'static/profile_pics', current_user.image_file))
     random_hex = secrets.token_hex(8)
     _, f_ext = os.path.splitext(form_picture.filename)
     picture_filename = random_hex + f_ext
-    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_filename)
+    picture_path = os.path.join(current_app.root_path, 'static/profile_pics', picture_filename)
     output_size = (125, 125)
     i = Image.open(form_picture)
     i.thumbnail(output_size)
