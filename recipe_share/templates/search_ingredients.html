@@ -6,7 +6,7 @@
         {{ form.hidden_tag() }}
         <fieldset class="form-group">
             <legend class="border-bottom mb-4">Search ingredients</legend>
-            <!-- <form method="POST" action="{{ url_for('search_ingredients') }}">
+            <!-- <form method="POST" action="{{ url_for('posts.search_ingredients') }}">
                 <div class="dropdown">
                     <button class="btn btn-secondary dropdown-toggle mb-2" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
                         <span id="selectedCategory">{{ drop_title }}</span>
@@ -30,9 +30,9 @@
                         <div class="media-body"> 
                             <h2><p class="article-title title-text">{{ posts['title'][i] }}</a>
                             {%if posts['already_saved'][i] == False%}
-                            <a href="{{url_for('save_post_from_search', title=posts['title'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                            <a href="{{url_for('posts.save_post_from_search', title=posts['title'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
                             {%else%}
-                            <a href="{{url_for('delete_post_from_search', title=posts['title'][i])}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                            <a href="{{url_for('posts.delete_post_from_search', title=posts['title'][i])}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
                             {%endif%}
                             </h2>
                             <h3><p class="article-ingredients">Method:</p></h3>

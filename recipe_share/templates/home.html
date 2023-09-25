@@ -5,9 +5,9 @@
         {{drop_title}}
         </button>
         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-        <li><a class="dropdown-item" href="{{url_for('home')}}">All recipes</a></li>
-        <li><a class="dropdown-item" href="{{url_for('personal_home')}}">Your recipes</a></li>
-        <li><a class="dropdown-item" href="{{url_for('saved_posts')}}">Saved recipes</a></li>
+        <li><a class="dropdown-item" href="{{url_for('main.home')}}">All recipes</a></li>
+        <li><a class="dropdown-item" href="{{url_for('main.personal_home')}}">Your recipes</a></li>
+        <li><a class="dropdown-item" href="{{url_for('posts.saved_posts')}}">Saved recipes</a></li>
         </ul>
     </div>
     {% for post in posts.items %}
@@ -16,26 +16,26 @@
             <img class="rounded-circle article-img" src="{{url_for('static', filename='profile_pics/' + post.author.image_file)}}">
             <div class="media-body">
                 <div class="article-metadata">
-                    <a class="mr-2" href="{{url_for('user_posts', username=post.author.username)}}">{{ post.author.username }}</a>
+                    <a class="mr-2" href="{{url_for('users.user_posts', username=post.author.username)}}">{{ post.author.username }}</a>
                     <small class="text-muted">{{ post.date_posted.strftime('%Y-%m-%d') }}</small>
                 </div>  
                 {%if post.private%}
-                <h2><a class="article-title title-text " href="{{url_for('post', post_id=post.id)}}">{{ post.title }}</a>
+                <h2><a class="article-title title-text " href="{{url_for('posts.post', post_id=post.id)}}">{{ post.title }}</a>
                 <span class="lead material-symbols-rounded">
                 lock</span>
                 {%if post.id is in saved_post_id%}
-                <a href="{{url_for('save_post', post_id=post.id)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                <a href="{{url_for('posts.save_post', post_id=post.id)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
                 {%else%}
-                <a href="{{url_for('save_post', post_id=post.id)}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                <a href="{{url_for('posts.save_post', post_id=post.id)}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
                 {%endif%}
                 </h2>
                 {%else%}
-                <h2><a class="article-title title-text " href="{{url_for('post', post_id=post.id)}}">{{ post.title }}</a>
+                <h2><a class="article-title title-text " href="{{url_for('posts.post', post_id=post.id)}}">{{ post.title }}</a>
                 <span class="article-title title-text material-symbols-rounded">lock_open</span>
                 {%if post.id is in saved_post_id%}
-                <a href="{{url_for('save_post', post_id=post.id)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                <a href="{{url_for('posts.save_post', post_id=post.id)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
                 {%else%}
-                <a href="{{url_for('save_post', post_id=post.id)}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                <a href="{{url_for('posts.save_post', post_id=post.id)}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
                 {%endif%}
                 </h2>
                 {%endif%}
@@ -54,16 +54,16 @@
     {%for page_num in posts.iter_pages(left_edge=1, right_edge=1, left_current=1, right_current=2) %}
         {%if page_num%}
             {%if posts.page == page_num%}
-                {% if request.path == url_for('personal_home') %}
-                    <a class="btn btn-info mb-4" href="{{url_for('personal_home', page=page_num)}}">{{page_num}}</a>
+                {% if request.path == url_for('main.personal_home') %}
+                    <a class="btn btn-info mb-4" href="{{url_for('main.personal_home', page=page_num)}}">{{page_num}}</a>
                 {%else%}
-                    <a class="btn btn-info mb-4" href="{{url_for('home', page=page_num)}}">{{page_num}}</a>
+                    <a class="btn btn-info mb-4" href="{{url_for('main.home', page=page_num)}}">{{page_num}}</a>
                 {%endif%}
             {%else%}
                 {% if request.path == url_for('personal_home') %}
-                    <a class="btn btn-outline-info mb-4" href="{{url_for('personal_home', page=page_num)}}">{{page_num}}</a>
+                    <a class="btn btn-outline-info mb-4" href="{{url_for('main.personal_home', page=page_num)}}">{{page_num}}</a>
                 {%else%}
-                    <a class="btn btn-outline-info mb-4" href="{{url_for('home', page=page_num)}}">{{page_num}}</a>
+                    <a class="btn btn-outline-info mb-4" href="{{url_for('main.home', page=page_num)}}">{{page_num}}</a>
                 {%endif%}
             {%endif%}
         {%else%}    

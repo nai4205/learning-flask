@@ -1,8 +1,8 @@
 from flask_wtf import FlaskForm
 from flask_wtf.file import FileField, FileAllowed
-from wtforms import StringField, PasswordField, SubmitField, BooleanField, TextAreaField
+from wtforms import StringField, PasswordField, SubmitField, BooleanField
 from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationError
-from main.models import User
+from recipe_share.models import User
 from flask_login import current_user
 
 class RegistrationForm(FlaskForm):
@@ -63,16 +63,6 @@ class UpdateAccountForm(FlaskForm):
             if user:
                 raise ValidationError('That email is taken, please choose another')
             
-class PostForm(FlaskForm):
-    title = StringField('Title', validators=[DataRequired()])
-    content = TextAreaField('Content', validators=[DataRequired()])
-    ingredients = TextAreaField('Ingredients', validators=[DataRequired()], render_kw={"rows": 5})  # Set rows for the textarea
-    submit = SubmitField('Post')
-
-class SearchForm(FlaskForm):
-    ingredients = TextAreaField('Ingredients', validators=[DataRequired()])
-    submit = SubmitField('Search')
-    
 class RequestResetForm(FlaskForm):
     email = StringField('Email', 
                         validators=[DataRequired(),

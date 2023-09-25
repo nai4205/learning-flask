@@ -1,4 +1,4 @@
-from main import db, login_manager, app
+from recipe_share import db, login_manager, app
 from datetime import datetime
 from flask_login import UserMixin
 from itsdangerous import TimedJSONWebSignatureSerializer as Serializer

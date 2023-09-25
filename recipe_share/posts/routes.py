@@ -1,47 +1,19 @@
-import secrets
-import os
-from PIL import Image
-from flask import render_template, url_for, flash, redirect, request, abort, session, jsonify, make_response
-from main.forms import RegistrationForm, LoginForm, UpdateAccountForm, PostForm, SearchForm, RequestResetForm, ResetPasswordForm
-from main.models import User, Post, SavePost
-from main import app, bcrypt, db, api_key
-import requests
-from bs4 import BeautifulSoup
-from flask_login import login_user, current_user, logout_user, login_required
+from flask import Blueprint
+from flask import render_template, request, Blueprint, flash, redirect, url_for, abort, session, jsonify
+from flask_login import current_user, login_required
+from recipe_share import db
+from recipe_share.models import Post, SavePost
+from recipe_share.posts.forms import PostForm, SearchForm
 from sqlalchemy import func
-from flask_mail import Message
-import concurrent.futures
-from flask_paginate import Pagination, get_page_args
-from flask_caching import Cache
 import asyncio
 import aiohttp
 from concurrent.futures import ThreadPoolExecutor
+from bs4 import BeautifulSoup
 
 
+posts = Blueprint('posts', __name__)
 
-@app.route("/")
-@app.route("/home")
-def home():
-    saved_post_id = []
-    page = request.args.get('page', 1, type=int)
-    if current_user.is_authenticated:
-        saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
-    posts = Post.query.order_by(Post.date_posted.desc()).filter_by(display=True).paginate(per_page=5, page=page)
-    return render_template('home.html', posts=posts, drop_title="All recipes", saved_post_id=saved_post_id)
-
-@app.route("/personal_home")
-@login_required
-def personal_home():
-    page = request.args.get('page', 1, type=int)
-    saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
-    posts = Post.query.filter_by(author=current_user).filter_by(display=True).order_by(Post.date_posted.desc()).paginate(per_page=5 , page=page)
-    if posts:
-        return render_template('personal_home.html', posts=posts, drop_title="Your recipes", saved_post_id=saved_post_id)
-    else:
-        flash("You haven't posted anything!", "danger")
-        return redirect(url_for('home'))
-    
-@app.route("/saved_posts")
+@posts.route("/saved_posts")
 @login_required 
 def saved_posts():
     page = request.args.get('page', 1, type=int)
@@ -51,93 +23,9 @@ def saved_posts():
         return render_template('saved_posts.html', posts=post, drop_title="Saved recipes")
     else:
         flash("You haven't saved any posts!", "danger")
-        return redirect(url_for('home'))
+        return redirect(url_for('main_routes.home'))
     
-@app.route("/user/<string:username>")
-def user_posts(username):
-    page = request.args.get('page', 1, type=int)
-    saved_post_id = [post.post_id for post in SavePost.query.filter_by(user_id=current_user.id).all()]
-    user = User.query.filter_by(username=username).first_or_404()
-    posts = Post.query.filter_by(author=user, display=True).order_by(Post.date_posted.desc()).paginate(per_page=5, page=page)
-    return render_template('user_posts.html', posts=posts, user=user, searching=True, saved_post_id=saved_post_id)
-
-@app.route("/about")
-def about():
-    return render_template('about.html', title='About')
-
-
-@app.route("/register", methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user = User(username=form.username.data, email=form.email.data, password=hashed_password)
-        db.session.add(user)
-        db.session.commit()
-        flash('Account successfully created', 'success')
-        return redirect(url_for('login'))
-        
-    return render_template('register.html', title='Register', form=form)
-
-@app.route("/login", methods=['GET', 'POST'])
-def login():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    form = LoginForm()
-    if form.validate_on_submit():
-        user = User.query.filter_by(email=form.email.data).first()
-        if user and bcrypt.check_password_hash(user.password, form.password.data):
-            login_user(user, remember=form.remember.data)
-            next_page = request.args.get('next')
-            if next_page:
-                return redirect(next_page)
-            else:
-                return redirect(url_for('home'))
-        else:
-            flash('Incorrect login details', 'danger')
-    return render_template('login.html', title='Login', form=form)
-
-@app.route("/logout")
-def logout():
-    logout_user()
-    return redirect(url_for('home'))
-
-def save_picture(form_picture):
-    if current_user.image_file != 'default.jpg':
-        os.remove(os.path.join(app.root_path, 'static/profile_pics', current_user.image_file))
-    random_hex = secrets.token_hex(8)
-    _, f_ext = os.path.splitext(form_picture.filename)
-    picture_filename = random_hex + f_ext
-    picture_path = os.path.join(app.root_path, 'static/profile_pics', picture_filename)
-    output_size = (125, 125)
-    i = Image.open(form_picture)
-    i.thumbnail(output_size)
-    i.save(picture_path)
-    return picture_filename
-
-@app.route("/account", methods=['GET',  'POST'])
-@login_required
-def account():
-    form = UpdateAccountForm()
-    if form.validate_on_submit():
-        if form.picture.data:
-            picture_filename = save_picture(form_picture=form.picture.data)
-            current_user.image_file = picture_filename
-        current_user.username = form.username.data
-        current_user.email = form.email.data
-        db.session.commit()
-        flash('Account Updated', 'success')
-        return redirect(url_for('account'))
-    elif request.method == 'GET':
-        form.username.data = current_user.username
-        form.email.data = current_user.email
-    image_file = url_for('static', filename='profile_pics/' + current_user.image_file)
-    return render_template('account.html', title='Account', image_file=image_file, form=form)
-
-
-@app.route("/post/new", methods=['GET', 'POST'])
+@posts.route("/post/new", methods=['GET', 'POST'])
 @login_required
 def new_post():
     form = PostForm()
@@ -161,17 +49,17 @@ def new_post():
         db.session.add(post)
         db.session.commit()
         flash('Post has been created', 'success')
-        return redirect(url_for('home'))
+        return redirect(url_for('main.home'))
     return render_template('create_post.html', title='New', form=form, legend='New Recipe')
 
 
-@app.route("/post/<int:post_id>")
+@posts.route("/post/<int:post_id>")
 def post(post_id): 
     post = Post.query.get_or_404(post_id)
     return render_template('post.html', title=post.title, post=post)
 
 
-@app.route("/post/<int:post_id>/update", methods=['GET', 'POST'])
+@posts.route("/post/<int:post_id>/update", methods=['GET', 'POST'])
 @login_required
 def update_post(post_id):
     post = Post.query.get_or_404(post_id)
@@ -192,7 +80,7 @@ def update_post(post_id):
         db.session.commit()
 
         flash('Post Updated', 'success')
-        return redirect(url_for('post', post_id=post.id))
+        return redirect(url_for('posts.post', post_id=post.id))
     elif request.method == 'GET':
         ingredients_list = post.ingredients.split('\n')
         form.ingredients.data = post.ingredients
@@ -201,7 +89,7 @@ def update_post(post_id):
         session['ingredients_len'] = len(post.ingredients.split('\n'))
     return render_template('create_post.html', title='Update', form=form, legend='Update Recipe', post=post)
 
-@app.route("/post/<int:post_id>/delete", methods=['POST', 'GET'])
+@posts.route("/post/<int:post_id>/delete", methods=['POST', 'GET'])
 @login_required
 def delete_post(post_id):
     post = Post.query.get_or_404(post_id)
@@ -215,30 +103,31 @@ def delete_post(post_id):
         db.session.delete(post)
     db.session.commit()
     flash("Post Deleted", 'success')
-    return redirect(url_for('home'))
+    return redirect(url_for('main.home'))
 
-@app.route("/handle_search")
+
+@posts.route("/handle_search")
 def handle_search():
     query = request.args['search']
     all_post_titles_public = [post.title for post in Post.query.filter_by(private=False).all()]
     post = Post.query.filter(func.lower(Post.title) == func.lower(query)).first()
     if post and query and post.private != True:  
         flash(f'Found result for {post.title}', 'success')
-        return redirect(url_for('post', post_id=post.id))
+        return redirect(url_for('posts.post', post_id=post.id))
     elif post and post.private == True:
         if current_user == post.author:
             flash(f'Found result for {post.title}', 'success')
-            return redirect(url_for('post', post_id=post.id))
+            return redirect(url_for('posts.post', post_id=post.id))
         else:
             flash(f'No result for {query}', 'danger')
-            return redirect(url_for('home'))
+            return redirect(url_for('main.home'))
     elif query:
         flash(f'No result for {query}', 'danger')
     else:
         flash('Please enter search query', 'danger')
     return render_template('layout.html', post_titles = all_post_titles_public)
 
-@app.route('/search_predictions')
+@posts.route('/search_predictions')
 def search_predictions():
     all_post_titles = [post.title for post in Post.query.all()]
     query = request.args.get('query', '').lower()
@@ -261,7 +150,7 @@ def search_predictions():
 
 
 
-@app.route("/save_post/<int:post_id>")
+@posts.route("/save_post/<int:post_id>")
 @login_required
 def save_post(post_id):
     post = Post.query.get_or_404(post_id)
@@ -280,7 +169,7 @@ def save_post(post_id):
         db.session.commit()
         return redirect(request.referrer)
     
-@app.route("/search_ingredients/<title>", methods=['GET', 'POST'])
+@posts.route("/search_ingredients/<title>", methods=['GET', 'POST'])
 @login_required
 def save_post_from_search(title):
     recipe = recipe_dict['title'].index(title)    
@@ -302,7 +191,7 @@ def save_post_from_search(title):
 
 
 
-@app.route("/search_ingredients/delete/<title>", methods=['GET', 'POST'])
+@posts.route("/search_ingredients/delete/<title>", methods=['GET', 'POST'])
 @login_required
 def delete_post_from_search(title):
     form=SearchForm()
@@ -386,7 +275,7 @@ async def get_ingredients_with_search(search_terms):
     
     return recipe_info
 
-@app.route("/search_ingredients", methods=['GET', 'POST'])
+@posts.route("/search_ingredients", methods=['GET', 'POST'])
 def search_ingredients():
     global recipe_dict
     recipe_dict = {}
@@ -441,55 +330,3 @@ def search_ingredients():
 
 
     return render_template('search_ingredients.html', form=form, posts=recipe_dict, searching=False)
-
-
-
-def send_reset_email(user):
-    token = user.get_reset_token()
-    requests.post(
-		"https://api.mailgun.net/v3/sandboxf6184cbbc9604db58f5ee2ac78568fea/messages",
-		auth=("api", "ca076204e3a43096776bc428bb92d012-4b98b89f-0237474a"),
-		data={"from": "noreply@gmail.com",
-			"to": user.email,
-			"subject": "Password Reset Request",
-			"text": f'''To reset your password, visit the following link: {url_for('reset_token', token=token, _external=True)}
-
-If you did not make this request, please ignore this email.
-    '''})
-    
-
-@app.route("/reset_password", methods=['GET', 'POST'])
-def reset_request():
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    form = RequestResetForm()
-    if form.validate_on_submit(): 
-        user = User.query.filter_by(email=form.email.data).first()
-        send_reset_email(user)
-        flash('Email sent', 'info')
-    return render_template('reset_request.html', title='Reset Password', form=form)
-
-@app.route("/reset_password/<token>", methods=['GET', 'POST'])
-def reset_token(token):
-    if current_user.is_authenticated:
-        return redirect(url_for('home'))
-    
-    user = User.verify_reset_token(token)
-    if user is None:
-        flash('That is an invalid or expired token', 'warning')
-        return redirect(url_for('reset_request'))
-    
-    form = ResetPasswordForm()
-    if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
-        user.password = hashed_password
-        db.session.commit()
-        flash('Password successfully changed', 'success')
-        return redirect(url_for('login'))
-    
-    
-    
-    return render_template('reset_token.html', title='Reset Password', form=form)
-
-
-    

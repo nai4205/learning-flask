@@ -1,26 +1,33 @@
 {% extends "layout.html" %}
 {% block content %}
+    
     <div class="dropdown">
         <button class="btn btn-secondary dropdown-toggle mb-2" type="button" id="dropdownMenuButton1" data-bs-toggle="dropdown" aria-expanded="false">
-        {{drop_title}}
+        Your recipes
         </button>
         <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton1">
-        <li><a class="dropdown-item" href="{{url_for('home')}}">Public</a></li>
-        <li><a class="dropdown-item" href="{{url_for('personal_home')}}">Your recipes</a></li>
-        <li><a class="dropdown-item" href="{{url_for('saved_posts')}}">Saved recipes</a></li>
+        <li><a class="dropdown-item" href="{{url_for('main.home')}}">Public</a></li>
+        <li><a class="dropdown-item" href="{{url_for('main.personal_home')}}">Personal</a></li>
+        <li><a class="dropdown-item" href="{{url_for('posts.saved_posts')}}">Saved</a></li>
         </ul>
     </div>
     {% for post in posts %}
+        {%if post.display%}
         <article class="media content-section">
             <img class="rounded-circle article-img" src="{{url_for('static', filename='profile_pics/' + post.author.image_file)}}">
             <div class="media-body">
                 <div class="article-metadata">
-                    <a class="mr-2" href="{{url_for('user_posts', username=post.author.username)}}">{{ post.author.username }}</a>
+                    <p class="mr-2">{{ post.author.username }}</p>
                     <small class="text-muted">{{ post.date_posted.strftime('%Y-%m-%d') }}</small>
                 </div>  
-                <h2><a class="article-title title-text" href="{{url_for('post', post_id=post.id)}}">{{ post.title }}</a>
-                <span class="article-title title-text material-symbols-rounded">lock_open</span>
-                <a href="{{url_for('save_post', post_id=post.id)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                <h2><a class="article-title title-text" href="{{url_for('posts.post', post_id=post.id)}}">{{ post.title }}</a>
+                <span class="lead material-symbols-rounded">
+                        lock</span>
+                {%if post.id is in saved_post_id%}
+                <a href="{{url_for('posts.save_post', post_id=post.id)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                {%else%}
+                <a href="{{url_for('posts.save_post', post_id=post.id)}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                {%endif%}
                 </h2>
                 <h3><p class="article-ingredients">Method:</p></h3>
                 <p class="article-content description-text method-container">{{ post.content.strip() }}</p>
@@ -32,15 +39,16 @@
                 </ul>
             </div>
         </article>
+        {%endif%}
     {% endfor %}
     <script>
         window.addEventListener("scroll", () => {
         const scrollY = window.scrollY;
         console.log(scrollY)
-        localStorage.setItem("scrollPositionSaved", scrollY);
+        localStorage.setItem("scrollPositionPHome", scrollY);
     });
         window.addEventListener("load", () => {
-        const scrollY = localStorage.getItem("scrollPositionSaved");
+        const scrollY = localStorage.getItem("scrollPositionPHome");
         if (scrollY !== null) {
             window.scrollTo(0, parseInt(scrollY, 10));
         }
