@@ -22,13 +22,10 @@ def save_picture(form_picture):
 
 def send_reset_email(user):
     token = user.get_reset_token()
-    requests.post(
-		"https://api.mailgun.net/v3/sandboxf6184cbbc9604db58f5ee2ac78568fea/messages",
-		auth=("api", "ca076204e3a43096776bc428bb92d012-4b98b89f-0237474a"),
-		data={"from": "noreply@gmail.com",
-			"to": user.email,
-			"subject": "Password Reset Request",
-			"text": f'''To reset your password, visit the following link: {url_for('users.reset_token', token=token, _external=True)}
-
-If you did not make this request, please ignore this email.
-    '''})
+    msg = Message('Password Reset Request', 
+                    sender='noreply@recipe_share.com', 
+                    recipients=[user.email]) 
+    msg.body = f'''To reset your password, visit the following link:
+{url_for('users.reset_token', token=token, _external=True)}
+'''
+    mail.send(msg)
