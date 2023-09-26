@@ -591,4 +591,48 @@ body {
     background-color: #555; /* Add a dark-grey background on hover */
   }
 
+  /* Additional Styles for Mobile */
+@media (max-width: 768px) {
+  /* Adjust font size and spacing for better mobile readability */
+  body {
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  /* Center-align content sections */
+  .content-section {
+    text-align: center;
+  }
+
+  /* Adjust margins and padding for smaller screens */
+  .content-section {
+    margin: 10px;
+    padding: 10px;
+  }
+
+  /* Make the navigation menu responsive */
+  .site-header .navbar-nav {
+    flex-direction: column; /* Stack navigation items vertically */
+  }
+
+  .site-header .navbar-nav .nav-link {
+    padding: 10px 0; /* Add vertical padding to nav links */
+    text-align: center; /* Center-align nav links */
+  }
+
+
+
+  /* Customize suggestions container for mobile */
+  #suggestions-container {
+    max-height: 100px; /* Reduce max height for smaller screens */
+  }
+
+  /* Customize pagination button size */
+  .btn-pagination {
+    padding: 5px 10px; /* Add padding to pagination buttons */
+  }
+
+  /* Additional mobile-specific styles can be added here */
+}
+
   
