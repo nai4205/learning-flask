@@ -23,31 +23,28 @@
                     <button type="submit" class="dropdownMenuButton1 mb-5">Search</button>
                 </div>
             </form> -->
-            {%if posts%}
-                {% for i in range(posts['title']|length)%}
-                    {%if posts['ingredients'][i]|length > 0%}
+                {% for post in posts%}
                     <article class="media content-section">
                         <div class="media-body"> 
-                            <h2><p class="article-title title-text">{{ posts['title'][i] }}</a>
-                            {%if posts['already_saved'][i] == False%}
-                            <a href="{{url_for('posts.save_post_from_search', title=posts['title'][i])}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
+                            <h2><p class="article-title title-text">{{ post.title}}</a>
+                            {%if post.already_saved == False%}
+                            <a href="{{url_for('posts.save_post_from_search', title=post.title)}}" class="material-symbols-outlined bookmark-symbol">bookmark</a>
                             {%else%}
-                            <a href="{{url_for('posts.delete_post_from_search', title=posts['title'][i])}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
+                            <a href="{{url_for('posts.delete_post_from_search', title=post.title)}}" class="material-symbols-rounded bookmark-symbol-fill">bookmark</a>
                             {%endif%}
                             </h2>
                             <h3><p class="article-ingredients">Method:</p></h3>
-                            <p class="article-content description-text method-container">{{ ''.join(posts['content'][i]).replace('[','').replace(']','').replace('\'','') }}</p>
+                            <p class="article-content description-text method-container">{{ ''.join(post.content).replace('[','').replace(']','').replace('\'','') }}</p>
                             <h3><p class="article-ttle">Ingredients:</p></h3>
                             <ul class="article-ingredients ingredients-text">
-                                {% for ingredient in posts['ingredients'][i] %}
+                                {% set elements = post.ingredients.strip('[]').replace('"', '').split(', ')%}
+                                {% for ingredient in elements%}
                                     <li>{{ ingredient.strip() }}</li><br>
                                 {% endfor %}
                             </ul>
                         </div>
                     </article>
-                    {%endif%}
                 {% endfor %}
-            {%endif%}
 
             <div class="form-group">
                 {{ form.ingredients.label(class="form-control-label") }}

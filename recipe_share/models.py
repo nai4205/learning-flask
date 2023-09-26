@@ -54,4 +54,12 @@ class SavePost(db.Model, UserMixin):
     
     def __repr__(self):
         return f"SavePost('{self.user_id}', '{self.post_id}')"
-
+    
+class fromSearch(db.Model, UserMixin):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String, nullable=False)
+    ingredients = db.Column(db.Text, nullable=False)
+    content = db.Column(db.Text, nullable=False)
+    already_saved = db.Column(db.Boolean, default=False)
+    def __repr__(self):
+        return f"fromSearch('{self.title}', '{self.ingredients}', '{self.content}')"

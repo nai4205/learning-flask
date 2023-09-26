@@ -28,6 +28,7 @@ def create_app(config_class=Config):
     login_manager.init_app(app)
     mail.init_app(app)
 
+
     from recipe_share.users.routes import users
     from recipe_share.posts.routes import posts
     from recipe_share.main.routes import main
@@ -39,4 +40,3 @@ def create_app(config_class=Config):
 
     return app
 
-    

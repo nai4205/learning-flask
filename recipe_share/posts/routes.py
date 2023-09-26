@@ -2,13 +2,15 @@ from flask import Blueprint
 from flask import render_template, request, Blueprint, flash, redirect, url_for, abort, session, jsonify
 from flask_login import current_user, login_required
 from recipe_share import db
-from recipe_share.models import Post, SavePost
+from recipe_share.models import Post, SavePost, fromSearch
 from recipe_share.posts.forms import PostForm, SearchForm
 from sqlalchemy import func
 import asyncio
 import aiohttp
 from concurrent.futures import ThreadPoolExecutor
 from bs4 import BeautifulSoup
+import json
+import jinja2
 
 
 posts = Blueprint('posts', __name__)
@@ -172,22 +174,24 @@ def save_post(post_id):
 @posts.route("/search_ingredients/<title>", methods=['GET', 'POST'])
 @login_required
 def save_post_from_search(title):
-    recipe = recipe_dict['title'].index(title)    
-    content=recipe_dict['content'][recipe]
-    content = ''.join(content).replace('[','').replace(']','').replace('\'','').replace('%25', '%')
-    ingredients=recipe_dict['ingredients'][recipe]
-    ingredients_string = '\n'.join(ingredient.strip() for ingredient in str(ingredients).replace('[','').replace(']','').replace('\'','').split(','))
     form=SearchForm()
-
-    new_post = Post(title=title, content=content, ingredients=ingredients_string, author=current_user, display=False)
+    recipe = fromSearch.query.filter_by(title=title).first()
+    content=recipe.content
+    ingredients=recipe.ingredients
+    ingredients = json.loads(ingredients)
+    ingredients = '\n'.join(ingredient.strip() for ingredient in str(ingredients).replace('[','').replace(']','').replace('\'','').split(','))
+    new_post = Post(title=title, content=content, ingredients=ingredients, author=current_user, display=False)
     db.session.add(new_post)    
     db.session.commit()
     save_post = SavePost(user_id=current_user.id, post_id=new_post.id)
     db.session.add(save_post)
     db.session.commit()
 
-    recipe_dict['already_saved'][recipe_dict['title'].index(title)] = True
-    return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
+    recipe.already_saved = True
+    db.session.commit()
+
+    posts = fromSearch.query.all()
+    return render_template('search_ingredients.html', posts=posts, form=form, searching=True)
 
 
 
@@ -203,9 +207,11 @@ def delete_post_from_search(title):
         db.session.delete(post)
         db.session.commit()
         
-    if recipe_dict:
-        recipe_dict['already_saved'][recipe_dict['title'].index(title)] = False
-    return render_template('search_ingredients.html', posts=recipe_dict, form=form, searching=True)
+    current_post = fromSearch.query.filter_by(title=title).first()
+    current_post.already_saved = False
+    db.session.commit()
+    posts = fromSearch.query.all()
+    return render_template('search_ingredients.html', posts=posts, form=form, searching=True)
 
 
 async def scrape_recipe(session, link, search_terms):
@@ -275,24 +281,23 @@ async def get_ingredients_with_search(search_terms):
     
     return recipe_info
 
+
+
+
+
+
 @posts.route("/search_ingredients", methods=['GET', 'POST'])
 def search_ingredients():
-    global recipe_dict
-    recipe_dict = {}
     form = SearchForm()
+    currentPosts = fromSearch.query.all()
+    if currentPosts:
+        for post in currentPosts:
+            db.session.delete(post)
+            db.session.commit()
 
     if form.validate_on_submit():
         search_terms = form.ingredients.data.split('\n')
         recipe_info = asyncio.run(get_ingredients_with_search(search_terms))
-
-        recipe_dict = {
-            'title': [],
-            'content': [],
-            'ingredients': [],
-            'already_saved': []
-        }
-        
-
         if not recipe_info:
             flash("No results found", "danger")
             return render_template('search_ingredients.html', form=form, posts=recipe_dict, searching=False)
@@ -307,26 +312,24 @@ def search_ingredients():
             reverse=True
         )
 
-        # Initialize recipe_dict
-        recipe_dict = {
-            'title': [],
-            'content': [],
-            'ingredients': [],
-            'already_saved': []
-        }
-
         for recipe_name, ingredients, method, count in sorted_results:
-            recipe_dict['title'].append(str(recipe_name))
-            recipe_dict['ingredients'].append(ingredients)
-            recipe_dict['content'].append(str(method))
+            method = ''.join(method).replace('[','').replace(']','').replace('\'','').replace('%25', '%')
+            ingredients = json.dumps(ingredients)
+            print(ingredients)
+            currentRecipes = fromSearch.query.filter_by(title=str(recipe_name)).first()
+            if not currentRecipes:
+                tempRecipes = fromSearch(title=str(recipe_name), ingredients=ingredients, content=str(method))
+                post = Post.query.filter_by(title=str(recipe_name)).first()
+                is_saved = False
+                if post:
+                    is_saved = SavePost.query.filter_by(user_id=current_user.id, post_id=post.id).first()
+                if is_saved:
+                    tempRecipes.already_saved = True
+                db.session.add(tempRecipes)
 
-            post = Post.query.filter(Post.title == recipe_name).first()
-            if post and not post.display and current_user == post.author:
-                recipe_dict['already_saved'].append(True)
-            else:
-                recipe_dict['already_saved'].append(False)
-
-        return render_template('search_ingredients.html', form=form, posts=recipe_dict)
+        db.session.commit()
+        posts = fromSearch.query.all()
+        return render_template('search_ingredients.html', form=form, posts=posts)
 
 
-    return render_template('search_ingredients.html', form=form, posts=recipe_dict, searching=False)
+    return render_template('search_ingredients.html', form=form, searching=False)
